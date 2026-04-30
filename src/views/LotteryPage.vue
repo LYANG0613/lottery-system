@@ -80,6 +80,7 @@
                 </div>
               </div>
               <div class="prize-level-badge">{{ getLevelLabel(currentPrize.level) }}</div>
+              <div class="prize-round-badge">第 {{ currentRoundIndex }} 轮</div>
               <div class="prize-name">{{ currentPrize.name }}</div>
               <div class="prize-info">
                 <el-tag type="warning" size="large">
@@ -499,6 +500,13 @@ const remainingCount = computed(() => {
   return store.getRemainingPrizeCount(currentPrize.value.id)
 })
 
+// 当前第几轮：已完成更低 level 的奖品数 + 1
+const currentRoundIndex = computed(() => {
+  if (!currentPrize.value) return 1
+  const lowerPrizes = store.state.prizes.filter(p => p.level < currentPrize.value!.level)
+  return lowerPrizes.length + 1
+})
+
 // 分组中奖名单
 interface WinnerGroup {
   prize: Prize
@@ -891,8 +899,20 @@ function exportWinners() {
     font-size: 12px;
     font-weight: 700;
     color: #1a1a2e;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+  }
+
+  .prize-round-badge {
+    display: inline-block;
+    padding: 3px 14px;
+    background: rgba(255, 215, 0, 0.15);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 215, 0, 0.9);
+    margin-bottom: 10px;
   }
 
   .prize-name {
@@ -1348,7 +1368,7 @@ function exportWinners() {
   align-items: flex-start;
   justify-content: center;
   overflow-y: auto;
-  padding: 12px 48px 28px;
+  padding: 12px 32px 28px;
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -1366,36 +1386,37 @@ function exportWinners() {
 }
 
 .round-winners-grid {
-  display: inline-grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 28px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
   justify-content: center;
+  max-width: 1800px;
+  width: 100%;
 }
 
 .round-winner-card {
   background: rgba(15, 25, 50, 0.9);
   border: 1px solid rgba(255, 215, 0, 0.3);
-  border-radius: 16px;
-  padding: 32px 24px;
+  border-radius: 14px;
+  padding: 20px 16px;
   width: 100%;
-  max-width: 360px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   backdrop-filter: blur(12px);
   animation: roundCardIn 0.4s ease both;
 
   .rwc-rank {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 700;
     color: rgba(255, 215, 0, 0.5);
   }
 
   .rwc-thumb {
-    width: 140px;
-    height: 140px;
-    border-radius: 14px;
+    width: 100px;
+    height: 100px;
+    border-radius: 12px;
     overflow: hidden;
     border: 1px solid rgba(255, 215, 0, 0.3);
 
@@ -1407,14 +1428,14 @@ function exportWinners() {
   }
 
   .rwc-sn {
-    font-size: 36px;
+    font-size: 22px;
     font-weight: 700;
     font-family: 'Consolas', 'Monaco', monospace;
     color: #FFD700;
   }
 
   .rwc-company {
-    font-size: 17px;
+    font-size: 14px;
     color: rgba(255, 255, 255, 0.85);
     text-align: center;
     line-height: 1.3;
@@ -1425,26 +1446,7 @@ function exportWinners() {
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.45);
-
-    .el-icon {
-      color: rgba(255, 215, 0, 0.5);
-    }
-  }
-  .rwc-company {
-    font-size: 17px;
-    color: rgba(255, 255, 255, 0.85);
-    text-align: center;
-    line-height: 1.3;
-    word-break: break-all;
-  }
-
-  .rwc-region {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 14px;
+    font-size: 13px;
     color: rgba(255, 255, 255, 0.45);
 
     .el-icon {
