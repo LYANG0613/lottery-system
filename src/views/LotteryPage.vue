@@ -2,7 +2,7 @@
   <div class="lottery-page">
     <!-- 粒子背景 -->
     <div class="particle-bg">
-      <span v-for="i in 50" :key="i" class="particle" :style="particleStyle(i)"></span>
+      <span v-for="i in 50" :key="i" class="particle" :style="particleData[i - 1]"></span>
     </div>
 
     <!-- 顶部导航 -->
@@ -254,7 +254,7 @@
       <div v-if="roundOverlayVisible && !isLastRound" class="round-overlay">
         <div class="celebration-bg"></div>
         <div class="celebration-particles">
-          <span v-for="i in 40" :key="i" class="cp" :style="celebrationParticleStyle(i)"></span>
+          <span v-for="i in 40" :key="i" class="cp" :style="celebrationParticleData[i - 1]"></span>
         </div>
         <div class="round-content">
           <div class="round-header">
@@ -320,7 +320,7 @@
       <div v-if="showCelebration" class="celebration-overlay">
         <div class="celebration-bg"></div>
         <div class="celebration-particles">
-          <span v-for="i in 60" :key="i" class="cp" :style="celebrationParticleStyle(i)"></span>
+          <span v-for="i in 60" :key="i" class="cp" :style="celebrationParticleData[i - 1]"></span>
         </div>
         <div class="celebration-content">
           <div class="celebration-header">
@@ -412,6 +412,7 @@ import LotteryMachine from '../components/LotteryMachine.vue'
 import { useLotteryStore } from '../stores/lottery'
 import { useLottery } from '../composables/useLottery'
 import { exportToExcel } from '../composables/useExcel'
+import { getLevelLabel } from '../composables/useConstants'
 import type { Prize, Winner } from '../types'
 
 const router = useRouter()
@@ -429,6 +430,32 @@ const isFullscreen = ref(false)
 
 // 多图轮播状态
 const prizeImageIndices = ref<Record<string, number>>({})
+
+// 粒子背景数据（挂载时生成一次，避免每次渲染重算）
+const PARTICLE_COLORS = ['var(--gold-color)', 'var(--gold-dark)', '#1E90FF', '#FF69B4', '#00CED1', '#7CFC00']
+const CELEBRATION_COLORS = ['var(--gold-color)', 'var(--gold-dark)', '#FF69B4', '#00CED1', '#FF6347', '#7CFC00']
+
+const particleData = Array.from({ length: 50 }, (_, i) => ({
+  left: `${Math.random() * 100}%`,
+  top: `${Math.random() * 100}%`,
+  animationDelay: `${Math.random() * 15}s`,
+  animationDuration: `${12 + Math.random() * 15}s`,
+  width: `${2 + Math.random() * 5}px`,
+  height: `${2 + Math.random() * 5}px`,
+  opacity: 0.1 + Math.random() * 0.25,
+  background: PARTICLE_COLORS[i % PARTICLE_COLORS.length]
+}))
+
+const celebrationParticleData = Array.from({ length: 60 }, (_, i) => ({
+  left: `${Math.random() * 100}%`,
+  top: `${Math.random() * 100}%`,
+  animationDelay: `${Math.random() * 8}s`,
+  animationDuration: `${6 + Math.random() * 8}s`,
+  width: `${3 + Math.random() * 8}px`,
+  height: `${3 + Math.random() * 8}px`,
+  opacity: 0.2 + Math.random() * 0.5,
+  background: CELEBRATION_COLORS[i % CELEBRATION_COLORS.length]
+}))
 
 function toggleFullscreen() {
   if (!document.fullscreenElement) {
@@ -525,18 +552,6 @@ const groupedWinners = computed<WinnerGroup[]>(() => {
   return Object.values(groups).sort((a, b) => a.prize.level - b.prize.level)
 })
 
-function getLevelLabel(level: number): string {
-  const labels: Record<number, string> = {
-    1: '特等奖',
-    2: '一等奖',
-    3: '二等奖',
-    4: '三等奖',
-    5: '四等奖',
-    6: '参与奖'
-  }
-  return labels[level] || `等级${level}`
-}
-
 function getRemainingPrizeCount(prizeId: string): number {
   return store.getRemainingPrizeCount(prizeId)
 }
@@ -615,34 +630,6 @@ function handleStartLottery() {
       }, 300)
     }
   )
-}
-
-function particleStyle(index: number) {
-  const colors = ['#FFD700', '#FFA500', '#1E90FF', '#FF69B4', '#00CED1', '#7CFC00']
-  return {
-    left: `${Math.random() * 100}%`,
-    top: `${Math.random() * 100}%`,
-    animationDelay: `${Math.random() * 15}s`,
-    animationDuration: `${12 + Math.random() * 15}s`,
-    width: `${2 + Math.random() * 5}px`,
-    height: `${2 + Math.random() * 5}px`,
-    opacity: 0.1 + Math.random() * 0.25,
-    background: colors[index % colors.length]
-  }
-}
-
-function celebrationParticleStyle(index: number) {
-  const colors = ['#FFD700', '#FFA500', '#FF69B4', '#00CED1', '#FF6347', '#7CFC00']
-  return {
-    left: `${Math.random() * 100}%`,
-    top: `${Math.random() * 100}%`,
-    animationDelay: `${Math.random() * 8}s`,
-    animationDuration: `${6 + Math.random() * 8}s`,
-    width: `${3 + Math.random() * 8}px`,
-    height: `${3 + Math.random() * 8}px`,
-    opacity: 0.2 + Math.random() * 0.5,
-    background: colors[index % colors.length]
-  }
 }
 
 function toggleSound() {
@@ -758,7 +745,7 @@ function exportWinners() {
   .logo-placeholder {
     font-size: 32px;
     font-weight: 700;
-    color: #FFD700;
+    color: var(--gold-color);
   }
 }
 
@@ -771,7 +758,7 @@ function exportWinners() {
 .site-title {
   font-size: 28px;
   font-weight: 800;
-  background: linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FFD700 100%);
+  background: linear-gradient(135deg, var(--gold-color) 0%, var(--gold-dark) 50%, var(--gold-color) 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -861,7 +848,7 @@ function exportWinners() {
     color: var(--primary-color);
 
     &.trophy {
-      color: #FFD700;
+      color: var(--gold-color);
     }
   }
 }
@@ -894,7 +881,7 @@ function exportWinners() {
   .prize-level-badge {
     display: inline-block;
     padding: 4px 18px;
-    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+    background: linear-gradient(135deg, var(--gold-color) 0%, var(--gold-dark) 100%);
     border-radius: 20px;
     font-size: 12px;
     font-weight: 700;
@@ -918,7 +905,7 @@ function exportWinners() {
   .prize-name {
     font-size: 26px;
     font-weight: 800;
-    color: #FFD700;
+    color: var(--gold-color);
     margin-bottom: 12px;
     text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
   }
@@ -944,7 +931,7 @@ function exportWinners() {
 
     .progress-bar {
       height: 100%;
-      background: linear-gradient(90deg, #FFD700, #FFA500);
+      background: linear-gradient(90deg, var(--gold-color), var(--gold-dark));
       border-radius: 2px;
       transition: width 0.5s ease;
     }
@@ -1070,7 +1057,7 @@ function exportWinners() {
     .item-rank {
       font-size: 10px;
       font-weight: 700;
-      color: #FFD700;
+      color: var(--gold-color);
       padding: 2px 8px;
       background: rgba(255, 215, 0, 0.15);
       border-radius: 8px;
@@ -1128,7 +1115,7 @@ function exportWinners() {
 
   .stat-icon {
     font-size: 24px;
-    color: #FFD700;
+    color: var(--gold-color);
   }
 
   .stat-info {
@@ -1138,7 +1125,7 @@ function exportWinners() {
     .stat-value {
       font-size: 24px;
       font-weight: 700;
-      color: #FFD700;
+      color: var(--gold-color);
       line-height: 1;
     }
 
@@ -1211,7 +1198,7 @@ function exportWinners() {
 
     .group-level {
       padding: 4px 14px;
-      background: linear-gradient(135deg, #FFD700, #FFA500);
+      background: linear-gradient(135deg, var(--gold-color), var(--gold-dark));
       border-radius: 12px;
       font-size: 12px;
       font-weight: 700;
@@ -1265,7 +1252,7 @@ function exportWinners() {
       font-size: 15px;
       font-weight: 700;
       font-family: 'Consolas', 'Monaco', monospace;
-      color: #FFD700;
+      color: var(--gold-color);
       letter-spacing: 1px;
     }
   }
@@ -1349,7 +1336,7 @@ function exportWinners() {
   .round-title {
     font-size: 52px;
     font-weight: 800;
-    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+    background: linear-gradient(135deg, var(--gold-color) 0%, var(--gold-dark) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -1433,7 +1420,7 @@ function exportWinners() {
     font-size: 22px;
     font-weight: 700;
     font-family: 'Consolas', 'Monaco', monospace;
-    color: #FFD700;
+    color: var(--gold-color);
   }
 
   .rwc-company {
@@ -1535,7 +1522,7 @@ function exportWinners() {
   .celebration-title {
     font-size: 48px;
     font-weight: 800;
-    background: linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FFD700 100%);
+    background: linear-gradient(135deg, var(--gold-color) 0%, var(--gold-dark) 50%, var(--gold-color) 100%);
     background-size: 200% auto;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -1583,14 +1570,14 @@ function exportWinners() {
       font-weight: 700;
       color: #1a1a2e;
       padding: 4px 14px;
-      background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+      background: linear-gradient(135deg, var(--gold-color) 0%, var(--gold-dark) 100%);
       border-radius: 12px;
     }
 
     .cg-name {
       font-size: 18px;
       font-weight: 700;
-      color: #FFD700;
+      color: var(--gold-color);
     }
   }
 
