@@ -40,12 +40,14 @@
           v-for="group in groupedWinners"
           :key="group.prize.id"
           class="prize-group"
+          :style="getGroupStyle(group.prize.level)"
         >
           <div class="group-header">
             <div class="prize-badge">
               <div
                 v-if="getPrizeImageList(group.prize).length > 0"
                 class="badge-image"
+                :style="{ borderColor: getLevelColor(group.prize.level).iconColor + '40' }"
                 @mouseenter="startAutoPlay(group.prize.id, group.prize)"
                 @mouseleave="stopAutoPlay(group.prize.id)"
               >
@@ -64,14 +66,14 @@
                 </div>
               </div>
               <div class="badge-text">
-                <span class="badge-rank">{{ getLevelLabel(group.prize.level) }}</span>
+                <span class="badge-rank" :style="getRankStyle(group.prize.level)">{{ getLevelLabel(group.prize.level) }}</span>
                 <span class="badge-name">{{ group.prize.name }}</span>
               </div>
             </div>
             <div class="group-stats">
               <span class="count">{{ group.winners.length }}/{{ group.prize.count }}</span>
               <div v-if="group.prize.items && group.prize.items.length > 0" class="badge-items">
-                <span v-for="item in group.prize.items" :key="item.id" class="item-tag">{{ item.name }}</span>
+                <span v-for="item in group.prize.items" :key="item.id" class="item-tag" :style="getItemTagStyle(group.prize.level)">{{ item.name }}</span>
               </div>
             </div>
           </div>
@@ -82,8 +84,9 @@
                 v-for="winner in group.winners"
                 :key="winner.id"
                 class="winner-card"
+                :style="{ '--level-icon': getLevelColor(winner.prize.level).iconColor }"
               >
-                <div class="winner-avatar">
+                <div class="winner-avatar" :style="getAvatarStyle(winner.prize.level)">
                   {{ getInitials(winner.participant.name) }}
                 </div>
                 <div class="winner-info">
@@ -117,7 +120,7 @@ import { ref, computed, watch, onUnmounted } from 'vue'
 import { Trophy, Download, Close } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { exportToExcel } from '../composables/useExcel'
-import { getLevelLabel } from '../composables/useConstants'
+import { getLevelLabel, getLevelColor } from '../composables/useConstants'
 import type { Winner, Prize } from '../types'
 
 interface Props {
@@ -208,6 +211,33 @@ function formatTime(date: Date): string {
   return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`
 }
 
+function getGroupStyle(level: number) {
+  const c = getLevelColor(level)
+  return {
+    '--level-gradient': c.gradient,
+    '--level-icon': c.iconColor,
+  }
+}
+
+function getAvatarStyle(level: number) {
+  const c = getLevelColor(level)
+  return { background: c.gradient }
+}
+
+function getRankStyle(level: number) {
+  const c = getLevelColor(level)
+  return { background: c.gradient }
+}
+
+function getItemTagStyle(level: number) {
+  const c = getLevelColor(level)
+  return {
+    background: `${c.iconColor}20`,
+    borderColor: `${c.iconColor}40`,
+    color: c.iconColor,
+  }
+}
+
 function handleExport() {
   if (props.winners.length === 0) {
     ElMessage.warning('没有可导出的数据')
@@ -296,6 +326,9 @@ function handleExport() {
 }
 
 .prize-group {
+  padding-left: 16px;
+  border-left: 3px solid var(--level-gradient);
+
   .group-header {
     display: flex;
     justify-content: space-between;
@@ -319,7 +352,8 @@ function handleExport() {
       overflow: hidden;
       flex-shrink: 0;
       background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 215, 0, 0.2);
+      border-width: 1px;
+      border-style: solid;
       cursor: pointer;
 
       img {
@@ -361,7 +395,6 @@ function handleExport() {
 
     .badge-rank {
       padding: 4px 12px;
-      background: linear-gradient(135deg, var(--accent-color), var(--accent-dark));
       border-radius: 20px;
       font-size: 12px;
       font-weight: 600;
@@ -383,7 +416,7 @@ function handleExport() {
 
     .count {
       font-size: 14px;
-      color: var(--accent-color);
+      color: var(--level-icon, var(--accent-color));
       font-weight: 600;
     }
 
@@ -395,11 +428,10 @@ function handleExport() {
 
       .item-tag {
         padding: 2px 8px;
-        background: rgba(255, 215, 0, 0.1);
-        border: 1px solid rgba(255, 215, 0, 0.2);
         border-radius: 8px;
         font-size: 11px;
-        color: rgba(255, 215, 0, 0.8);
+        border-width: 1px;
+        border-style: solid;
       }
     }
   }
@@ -423,7 +455,7 @@ function handleExport() {
 
   &:hover {
     background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(245, 166, 35, 0.3);
+    border-color: var(--level-icon, var(--accent-color));
 
     .remove-btn {
       opacity: 1;
@@ -437,7 +469,6 @@ function handleExport() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
   border-radius: 50%;
   font-size: 18px;
   font-weight: 700;

@@ -433,7 +433,7 @@ import type { Prize, Winner } from '../types'
 const router = useRouter()
 const store = useLotteryStore()
 const logoError = ref(false)
-const defaultLogo = import.meta.env.BASE_URL + 'logo.svg'
+const defaultLogo = import.meta.env.BASE_URL + 'image.png'
 
 // 每轮结束后全屏展示
 const roundOverlayVisible = ref(false)
@@ -767,9 +767,9 @@ function exportWinners() {
 
 .company-logo {
   position: relative;
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
+  width: 120px;
+  height: 24px;
+  border-radius: 6px;
   overflow: hidden;
   background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.05));
   border: 2px solid rgba(255, 215, 0, 0.3);
@@ -788,11 +788,11 @@ function exportWinners() {
     width: 100%;
     height: 100%;
     object-fit: contain;
-    padding: 3px;
+    image-rendering: -webkit-optimize-contrast;
   }
 
   .logo-placeholder {
-    font-size: 24px;
+    font-size: 16px;
     font-weight: 700;
     color: var(--gold-color);
   }
@@ -805,7 +805,7 @@ function exportWinners() {
 }
 
 .site-title {
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 800;
   background: linear-gradient(135deg, var(--gold-color) 0%, var(--gold-dark) 50%, var(--gold-color) 100%);
   background-size: 200% auto;

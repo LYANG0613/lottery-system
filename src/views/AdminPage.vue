@@ -5,8 +5,18 @@
       <div class="header-content">
         <div class="logo-section">
           <div class="company-logo">
-            <img v-if="store.state.companyLogo" :src="store.state.companyLogo" alt="logo" />
-            <span v-else class="logo-placeholder">L</span>
+            <img
+              v-if="store.state.companyLogo"
+              :src="store.state.companyLogo"
+              alt="logo"
+              class="logo-img"
+            />
+            <img
+              v-else
+              :src="defaultLogo"
+              alt="logo"
+              class="logo-img"
+            />
           </div>
           <h1 class="site-title">抽奖系统管理后台</h1>
         </div>
@@ -321,6 +331,7 @@ import type { Participant, Prize, PrizeItem } from '../types'
 
 const router = useRouter()
 const store = useLotteryStore()
+const defaultLogo = import.meta.env.BASE_URL + 'image.png'
 
 // 页面标题
 updatePageTitle(store.state.eventName)
@@ -589,13 +600,13 @@ function goToLottery() {
 .logo-section {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 18px;
 }
 
 .company-logo {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-md);
+  width: 120px;
+  height: 24px;
+  border-radius: 6px;
   overflow: hidden;
   background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
   display: flex;
@@ -607,17 +618,18 @@ function goToLottery() {
     width: 100%;
     height: 100%;
     object-fit: contain;
+    image-rendering: -webkit-optimize-contrast;
   }
 
   .logo-placeholder {
-    font-size: 24px;
+    font-size: 16px;
     font-weight: 700;
     color: #fff;
   }
 }
 
 .site-title {
-  font-size: 24px;
+  font-size: 30px;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: 0.5px;

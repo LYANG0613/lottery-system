@@ -66,6 +66,7 @@
           :key="group.prize.id"
           class="prize-group"
           :class="`level-${group.prize.level}`"
+          :style="getGroupStyle(group.prize.level)"
         >
           <div class="group-header">
             <div class="group-badge">{{ getLevelLabel(group.prize.level) }}</div>
@@ -93,7 +94,7 @@
               <div class="group-text">
                 <span class="group-name">{{ group.prize.name }}</span>
                 <div v-if="group.prize.items && group.prize.items.length > 0" class="group-items">
-                  <span v-for="item in group.prize.items" :key="item.id" class="item-tag">{{ item.name }}</span>
+                  <span v-for="item in group.prize.items" :key="item.id" class="item-tag" :style="getItemTagStyle(group.prize.level)">{{ item.name }}</span>
                 </div>
               </div>
               <span class="group-count">{{ group.winners.length }} 名</span>
@@ -125,7 +126,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Trophy, Location, FullScreen, Close, HomeFilled, ArrowLeft } from '@element-plus/icons-vue'
 import { useLotteryStore } from '../stores/lottery'
-import { getLevelLabel, updatePageTitle } from '../composables/useConstants'
+import { getLevelLabel, getLevelColor, updatePageTitle } from '../composables/useConstants'
 import type { Winner, Prize } from '../types'
 
 const router = useRouter()
@@ -235,6 +236,23 @@ function particleStyle(_index: number) {
     width: `${2 + Math.random() * 6}px`,
     height: `${2 + Math.random() * 6}px`,
     opacity: 0.1 + Math.random() * 0.4
+  }
+}
+
+function getGroupStyle(level: number) {
+  const c = getLevelColor(level)
+  return {
+    '--level-gradient': c.gradient,
+    '--level-icon': c.iconColor,
+  }
+}
+
+function getItemTagStyle(level: number) {
+  const c = getLevelColor(level)
+  return {
+    background: `${c.iconColor}20`,
+    borderColor: `${c.iconColor}40`,
+    color: c.iconColor,
   }
 }
 </script>
@@ -432,7 +450,7 @@ function particleStyle(_index: number) {
   transition: all 0.3s ease;
 
   &:hover {
-    border-color: rgba(255, 215, 0, 0.3);
+    border-color: var(--level-icon, rgba(255, 215, 0, 0.3));
     box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
     transform: translateY(-2px);
   }
@@ -442,9 +460,17 @@ function particleStyle(_index: number) {
     background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, var(--card-bg) 100%);
 
     .group-badge {
-      background: linear-gradient(135deg, var(--gold-color), var(--gold-dark));
+      background: linear-gradient(135deg, #FFD700, #FFA500);
       font-size: 18px;
       padding: 8px 24px;
+    }
+
+    .group-image {
+      border-color: rgba(255, 215, 0, 0.4);
+    }
+
+    .winner-sn {
+      background: linear-gradient(135deg, #FFD700, #FFA500);
     }
   }
 
@@ -452,10 +478,26 @@ function particleStyle(_index: number) {
     .group-badge {
       background: linear-gradient(135deg, #C0C0C0, #A8A8A8);
     }
+
+    .group-image {
+      border-color: rgba(192, 192, 192, 0.4);
+    }
+
+    .winner-sn {
+      background: linear-gradient(135deg, #C0C0C0, #A8A8A8);
+    }
   }
 
   &.level-3 {
     .group-badge {
+      background: linear-gradient(135deg, #CD7F32, #B8860B);
+    }
+
+    .group-image {
+      border-color: rgba(205, 127, 50, 0.4);
+    }
+
+    .winner-sn {
       background: linear-gradient(135deg, #CD7F32, #B8860B);
     }
   }
@@ -465,6 +507,14 @@ function particleStyle(_index: number) {
       background: linear-gradient(135deg, #4169E1, #1E40AF);
       color: #fff;
     }
+
+    .group-image {
+      border-color: rgba(65, 105, 225, 0.4);
+    }
+
+    .winner-sn {
+      background: linear-gradient(135deg, #4169E1, #1E40AF);
+    }
   }
 
   &.level-5 {
@@ -472,11 +522,28 @@ function particleStyle(_index: number) {
       background: linear-gradient(135deg, #6B7280, #4B5563);
       color: #fff;
     }
+
+    .group-image {
+      border-color: rgba(107, 114, 128, 0.4);
+    }
+
+    .winner-sn {
+      background: linear-gradient(135deg, #6B7280, #4B5563);
+    }
   }
 
   &.level-6 {
     .group-badge {
-      background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
+      background: linear-gradient(135deg, #10B981, #059669);
+      color: #fff;
+    }
+
+    .group-image {
+      border-color: rgba(16, 185, 129, 0.4);
+    }
+
+    .winner-sn {
+      background: linear-gradient(135deg, #10B981, #059669);
     }
   }
 }
@@ -570,11 +637,10 @@ function particleStyle(_index: number) {
 
     .item-tag {
       padding: 2px 10px;
-      background: rgba(255, 215, 0, 0.12);
-      border: 1px solid rgba(255, 215, 0, 0.25);
       border-radius: 10px;
       font-size: 12px;
-      color: rgba(255, 215, 0, 0.85);
+      border-width: 1px;
+      border-style: solid;
     }
   }
 
@@ -624,12 +690,12 @@ function particleStyle(_index: number) {
 .winner-sn {
   font-size: 28px;
   font-weight: 800;
-  background: linear-gradient(135deg, var(--gold-color), var(--gold-dark));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   letter-spacing: 2px;
   margin-bottom: 8px;
+  background: linear-gradient(135deg, #FFD700, #FFA500);
 }
 
 .winner-company {
