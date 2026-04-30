@@ -10,3 +10,7 @@ dist
 *.njsproj
 *.sln
 *.sw?
+.cursor/
+dist.zip
+*.cjs
+

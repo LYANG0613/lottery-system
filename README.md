@@ -142,6 +142,9 @@ lottery-system/
 ### 发布命令
 
 ```bash
+# 首次需要设置 GitHub Token（只需设置一次）
+export GITHUB_TOKEN=ghp_your_personal_access_token_here
+
 # 标准发布（构建 + 提交 + 推送 + 等待 CI 结果）
 node deploy.cjs
 
@@ -151,6 +154,8 @@ node deploy.cjs "fix: 修复获奖名单样式"
 # 仅检查最近一次 CI 状态（不提交不构建）
 node deploy.cjs --check-only
 ```
+
+> Token 需要 `repo` 权限。可在 GitHub → Settings → Developer settings → Personal access tokens 生成。
 
 ### 手动触发
 
