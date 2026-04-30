@@ -19,7 +19,7 @@
             />
             <img
               v-else
-              src="/logo.svg"
+              :src="defaultLogo"
               alt="logo"
               class="logo-img"
               @error="handleLogoError"
@@ -416,6 +416,7 @@ import type { Prize, Winner } from '../types'
 const router = useRouter()
 const store = useLotteryStore()
 const logoError = ref(false)
+const defaultLogo = import.meta.env.BASE_URL + 'logo.svg'
 
 // 每轮结束后全屏展示
 const roundOverlayVisible = ref(false)
