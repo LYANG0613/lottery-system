@@ -24,7 +24,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory('/lottery-system'),
+  history: createWebHistory(import.meta.env.VITE_BASE_PATH || '/'),
   routes
 })
 
