@@ -412,7 +412,7 @@ import LotteryMachine from '../components/LotteryMachine.vue'
 import { useLotteryStore } from '../stores/lottery'
 import { useLottery } from '../composables/useLottery'
 import { exportToExcel } from '../composables/useExcel'
-import { getLevelLabel } from '../composables/useConstants'
+import { getLevelLabel, updatePageTitle } from '../composables/useConstants'
 import type { Prize, Winner } from '../types'
 
 const router = useRouter()
@@ -485,6 +485,7 @@ function onFullscreenChange() {
 
 onMounted(() => {
   document.addEventListener('fullscreenchange', onFullscreenChange)
+  updatePageTitle(store.state.eventName)
 })
 
 onUnmounted(() => {
@@ -507,6 +508,11 @@ const {
 // 实时中奖通知：每个中奖者揭晓时立即更新 store
 setOnWinnerCallback((winner: Winner) => {
   store.addWinners([winner])
+})
+
+// 监听活动名称变化，更新页面标题
+watch(() => store.state.eventName, (name) => {
+  updatePageTitle(name)
 })
 
 const winnerIds = computed(() => store.state.winners.map(w => w.participant.id))
@@ -708,6 +714,13 @@ function exportWinners() {
   display: flex;
   justify-content: center;
   position: relative;
+
+  @media (max-width: 768px) {
+    padding: 16px 20px;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
 }
 
 .logo-section {
@@ -785,6 +798,10 @@ function exportWinners() {
   position: relative;
   z-index: 1;
   padding: 32px;
+
+  @media (max-width: 768px) {
+    padding: 16px;
+  }
 }
 
 .lottery-container {
@@ -799,9 +816,14 @@ function exportWinners() {
     grid-template-columns: 340px 1fr 340px;
   }
 
-  @media (max-width: 1200px) {
+  @media (max-width: 1024px) {
+    grid-template-columns: 300px 1fr 300px;
+    gap: 20px;
+  }
+
+  @media (max-width: 768px) {
     grid-template-columns: 1fr;
-    gap: 24px;
+    gap: 16px;
   }
 }
 
@@ -818,7 +840,7 @@ function exportWinners() {
 }
 
 .winners-panel {
-  @media (max-width: 1200px) {
+  @media (max-width: 768px) {
     order: 3;
   }
 }
