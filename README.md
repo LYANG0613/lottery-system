@@ -113,6 +113,59 @@ lottery-system/
 
 支持多种列名变体（姓名/Name/名称、手机/Mobile/电话 等）
 
+## 自动化部署流程
+
+本项目使用 GitHub Actions 实现 push 后自动构建并部署到 GitHub Pages。
+
+### 流程图
+
+```
+代码修改  →  git add / git commit
+     ↓
+  node deploy.cjs
+     ↓
+  ┌─ 本地构建验证（npm run build，强制类型检查）
+  │     ❌ 构建失败 → 停在本地，不推送到 GitHub
+  │     ✅ 构建成功 → 继续
+  ├─ git push origin main
+  │     ↓
+  └─ GitHub Actions 自动触发
+        ↓
+     ┌─ npm ci（安装依赖）
+     ├─ npm run build（类型检查 + Vite 构建）
+     ├─ cp dist/index.html dist/404.html（SPA fallback）
+     └─ peaceiris/actions-gh-pages 部署到 gh-pages 分支
+           ↓
+     https://LYANG0613.github.io/lottery-system/ 自动更新
+```
+
+### 发布命令
+
+```bash
+# 标准发布（构建 + 提交 + 推送 + 等待 CI 结果）
+node deploy.cjs
+
+# 带自定义 commit message
+node deploy.cjs "fix: 修复获奖名单样式"
+
+# 仅检查最近一次 CI 状态（不提交不构建）
+node deploy.cjs --check-only
+```
+
+### 手动触发
+
+如果 CI 意外失败，修复后可在 GitHub Actions 页面手动触发：
+
+https://github.com/LYANG0613/lottery-system/actions → "Deploy to GitHub Pages" → Run workflow
+
+### 常见失败原因
+
+| 错误 | 原因 | 解决 |
+|------|------|------|
+| Cannot find module | 有文件未提交到 GitHub | 检查 `git status`，确保 `composables/` 等新文件已 commit |
+| vue-tsc error | TypeScript 类型错误 | 本地运行 `npm run build` 先修复 |
+| Deploy 404 | 路由页面刷新 404 | 检查 `dist/404.html` 是否生成 |
+
 ## License
 
 MIT
