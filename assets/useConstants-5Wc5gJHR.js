@@ -1,1 +1,0 @@
-var e={1:`特等奖`,2:`一等奖`,3:`二等奖`,4:`三等奖`,5:`四等奖`,6:`参与奖`};function t(t){return e[t]||`等级${t}`}function n(e){document.title=e?`${e} - 抽奖系统`:`抽奖系统`}export{n,t};
