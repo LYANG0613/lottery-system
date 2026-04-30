@@ -1386,10 +1386,11 @@ function exportWinners() {
 }
 
 .round-winners-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
+  display: flex;
+  flex-wrap: wrap;
   justify-content: center;
+  align-items: flex-start;
+  gap: 16px;
   max-width: 1800px;
   width: 100%;
 }
@@ -1399,7 +1400,8 @@ function exportWinners() {
   border: 1px solid rgba(255, 215, 0, 0.3);
   border-radius: 14px;
   padding: 20px 16px;
-  width: 100%;
+  width: 220px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
