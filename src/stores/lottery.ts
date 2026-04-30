@@ -36,7 +36,7 @@ function loadFromStorage(): LotteryState {
   }
   return {
     eventName: '',
-    companyLogo: '/logo.svg',
+    companyLogo: import.meta.env.BASE_URL + 'logo.svg',
     participants: [],
     prizes: [],
     winners: []
