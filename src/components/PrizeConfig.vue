@@ -44,6 +44,10 @@
               <span class="remaining">
                 剩余 {{ getRemainingCount(prize.id) }} 个名额
               </span>
+              <el-tag v-if="prize.items && prize.items.length > 0" size="small" type="info">
+                <el-icon><Goods /></el-icon>
+                {{ prize.items.length }} 件物品
+              </el-tag>
             </div>
           </div>
 
@@ -109,6 +113,31 @@
           />
         </el-form-item>
 
+        <el-form-item label="奖品物品">
+          <div class="items-list">
+            <div v-for="(item, idx) in form.items" :key="item.id" class="item-row">
+              <el-input
+                v-model="item.name"
+                placeholder="物品名称，如：iPhone 15"
+                size="small"
+              />
+              <el-button
+                type="danger"
+                size="small"
+                link
+                @click="removeItem(idx)"
+              >
+                <el-icon><Delete /></el-icon>
+              </el-button>
+            </div>
+            <el-button type="primary" size="small" @click="addItem">
+              <el-icon><Plus /></el-icon>
+              添加物品
+            </el-button>
+          </div>
+          <p class="upload-tip">可添加多个物品，例如：一等奖包含 iPhone、AirPods、Apple Watch</p>
+        </el-form-item>
+
         <el-form-item label="奖品图片">
           <div class="images-upload-grid">
             <div
@@ -151,9 +180,10 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
-import { Plus, Delete, Present, Trophy, Edit } from '@element-plus/icons-vue'
+import { Plus, Delete, Present, Trophy, Edit, Goods } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import type { Prize, Winner } from '../types'
+import { getLevelLabel } from '../composables/useConstants'
+import type { Prize, Winner, PrizeItem } from '../types'
 
 interface Props {
   prizes: Prize[]
@@ -180,23 +210,20 @@ const form = reactive({
   level: 3,
   count: 1,
   description: '',
-  images: [] as string[]
+  images: [] as string[],
+  items: [] as PrizeItem[]
 })
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substring(2)
 }
 
-function getLevelLabel(level: number): string {
-  const labels: Record<number, string> = {
-    1: '特等奖',
-    2: '一等奖',
-    3: '二等奖',
-    4: '三等奖',
-    5: '四等奖',
-    6: '参与奖'
-  }
-  return labels[level] || `等级${level}`
+function addItem() {
+  form.items.push({ id: generateId(), name: '' })
+}
+
+function removeItem(index: number) {
+  form.items.splice(index, 1)
 }
 
 function getRemainingCount(prizeId: string): number {
@@ -213,7 +240,8 @@ function addPrize() {
     level: 3,
     count: 1,
     description: '',
-    images: []
+    images: [],
+    items: []
   })
   dialogVisible.value = true
 }
@@ -226,7 +254,8 @@ function editPrize(prize: Prize) {
     count: prize.count,
     description: prize.description || '',
     image: prize.images?.[0] || prize.image || '',
-    images: prize.images || (prize.image ? [prize.image] : [])
+    images: prize.images || (prize.image ? [prize.image] : []),
+    items: prize.items || []
   })
   dialogVisible.value = true
 }
@@ -275,7 +304,8 @@ function savePrize() {
         level: form.level,
         count: form.count,
         description: form.description,
-        images: [...form.images]
+        images: [...form.images],
+        items: [...form.items]
       }
       emit('update:prizes', updated)
     }
@@ -287,7 +317,8 @@ function savePrize() {
       level: form.level,
       count: form.count,
       description: form.description,
-      images: [...form.images]
+      images: [...form.images],
+      items: [...form.items]
     }
     const sorted = [...props.prizes, newPrize].sort((a, b) => a.level - b.level)
     emit('update:prizes', sorted)
@@ -551,6 +582,23 @@ defineExpose({
       border-color: var(--primary-color);
       background: rgba(26, 92, 170, 0.08);
       color: var(--primary-color);
+    }
+  }
+}
+
+.items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+
+  .item-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .el-input {
+      flex: 1;
     }
   }
 }

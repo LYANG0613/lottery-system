@@ -208,6 +208,41 @@ html, body {
   }
 }
 
+/* ========== Shared animation keyframes ========== */
+@keyframes title-shine {
+  to { background-position: 200% center; }
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes float-particle {
+  0% { transform: translateY(0) translateX(0); opacity: 0.3; }
+  25% { transform: translateY(-100px) translateX(50px); opacity: 0.6; }
+  50% { transform: translateY(-200px) translateX(-30px); opacity: 0.3; }
+  75% { transform: translateY(-100px) translateX(-50px); opacity: 0.5; }
+  100% { transform: translateY(0) translateX(0); opacity: 0.3; }
+}
+
+@keyframes roundCardIn {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ========== Accessibility: focus-visible ========== */
+:focus-visible {
+  outline: 2px solid var(--gold-color);
+  outline-offset: 2px;
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease;

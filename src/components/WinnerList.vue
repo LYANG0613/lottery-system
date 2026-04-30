@@ -43,11 +43,36 @@
         >
           <div class="group-header">
             <div class="prize-badge">
-              <span class="badge-rank">{{ getLevelLabel(group.prize.level) }}</span>
-              <span class="badge-name">{{ group.prize.name }}</span>
+              <div
+                v-if="getPrizeImageList(group.prize).length > 0"
+                class="badge-image"
+                @mouseenter="startAutoPlay(group.prize.id, group.prize)"
+                @mouseleave="stopAutoPlay(group.prize.id)"
+              >
+                <img
+                  :src="getPrizeImageList(group.prize)[getPrizeImageIndex(group.prize.id, group.prize)]"
+                  alt=""
+                  @error="e => (e.target as HTMLImageElement).style.display = 'none'"
+                />
+                <div v-if="getPrizeImageList(group.prize).length > 1" class="img-dots">
+                  <span
+                    v-for="(_, i) in getPrizeImageList(group.prize)"
+                    :key="i"
+                    class="dot"
+                    :class="{ active: i === getPrizeImageIndex(group.prize.id, group.prize) }"
+                  ></span>
+                </div>
+              </div>
+              <div class="badge-text">
+                <span class="badge-rank">{{ getLevelLabel(group.prize.level) }}</span>
+                <span class="badge-name">{{ group.prize.name }}</span>
+              </div>
             </div>
             <div class="group-stats">
               <span class="count">{{ group.winners.length }}/{{ group.prize.count }}</span>
+              <div v-if="group.prize.items && group.prize.items.length > 0" class="badge-items">
+                <span v-for="item in group.prize.items" :key="item.id" class="item-tag">{{ item.name }}</span>
+              </div>
             </div>
           </div>
 
@@ -88,10 +113,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { Trophy, Download, Close } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { exportToExcel } from '../composables/useExcel'
+import { getLevelLabel } from '../composables/useConstants'
 import type { Winner, Prize } from '../types'
 
 interface Props {
@@ -108,6 +134,38 @@ const emit = defineEmits<Emits>()
 interface WinnerGroup {
   prize: Prize
   winners: Winner[]
+}
+
+const prizeImageIndices = ref<Record<string, number>>({})
+const autoPlayTimers = ref<Record<string, ReturnType<typeof setInterval>>>({})
+const AUTO_PLAY_INTERVAL = 3000
+
+function getPrizeImageList(prize: Prize | undefined): string[] {
+  if (!prize) return []
+  return prize.images?.length ? prize.images : prize.image ? [prize.image] : []
+}
+
+function getPrizeImageIndex(prizeId: string, prize: Prize | undefined): number {
+  const list = getPrizeImageList(prize)
+  const current = prizeImageIndices.value[prizeId] ?? 0
+  return list.length > 0 ? current % list.length : 0
+}
+
+function startAutoPlay(prizeId: string, prize: Prize | undefined) {
+  const list = getPrizeImageList(prize)
+  if (list.length <= 1) return
+  if (autoPlayTimers.value[prizeId]) clearInterval(autoPlayTimers.value[prizeId])
+  autoPlayTimers.value[prizeId] = setInterval(() => {
+    const idx = prizeImageIndices.value[prizeId] ?? 0
+    prizeImageIndices.value[prizeId] = (idx + 1) % list.length
+  }, AUTO_PLAY_INTERVAL)
+}
+
+function stopAutoPlay(prizeId: string) {
+  if (autoPlayTimers.value[prizeId]) {
+    clearInterval(autoPlayTimers.value[prizeId])
+    delete autoPlayTimers.value[prizeId]
+  }
 }
 
 const groupedWinners = computed<WinnerGroup[]>(() => {
@@ -127,17 +185,18 @@ const groupedWinners = computed<WinnerGroup[]>(() => {
   return Object.values(groups).sort((a, b) => a.prize.level - b.prize.level)
 })
 
-function getLevelLabel(level: number): string {
-  const labels: Record<number, string> = {
-    1: '特等奖',
-    2: '一等奖',
-    3: '二等奖',
-    4: '三等奖',
-    5: '四等奖',
-    6: '参与奖'
-  }
-  return labels[level] || `等级${level}`
-}
+// Auto-start carousel for all groups
+watch(groupedWinners, (groups) => {
+  groups.forEach(group => {
+    if (getPrizeImageList(group.prize).length > 1) {
+      startAutoPlay(group.prize.id, group.prize)
+    }
+  })
+}, { immediate: true })
+
+onUnmounted(() => {
+  Object.keys(autoPlayTimers.value).forEach(id => stopAutoPlay(id))
+})
 
 function getInitials(name: string): string {
   if (!name) return '?'
@@ -240,16 +299,65 @@ function handleExport() {
   .group-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 16px;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--card-border);
+    gap: 12px;
   }
 
   .prize-badge {
     display: flex;
     align-items: center;
     gap: 12px;
+
+    .badge-image {
+      position: relative;
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      cursor: pointer;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+    }
+
+    .img-dots {
+      position: absolute;
+      bottom: 2px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      gap: 2px;
+
+      .dot {
+        width: 3px;
+        height: 3px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.4);
+        transition: all 0.3s;
+
+        &.active {
+          background: var(--gold-color);
+          width: 6px;
+          border-radius: 2px;
+        }
+      }
+    }
+
+    .badge-text {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
 
     .badge-rank {
       padding: 4px 12px;
@@ -268,10 +376,31 @@ function handleExport() {
   }
 
   .group-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+
     .count {
       font-size: 14px;
       color: var(--accent-color);
       font-weight: 600;
+    }
+
+    .badge-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      justify-content: flex-end;
+
+      .item-tag {
+        padding: 2px 8px;
+        background: rgba(255, 215, 0, 0.1);
+        border: 1px solid rgba(255, 215, 0, 0.2);
+        border-radius: 8px;
+        font-size: 11px;
+        color: rgba(255, 215, 0, 0.8);
+      }
     }
   }
 }

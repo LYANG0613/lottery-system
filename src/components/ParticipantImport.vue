@@ -307,7 +307,7 @@ async function clearAll() {
     .machine-code-cell {
       font-family: 'Consolas', 'Monaco', monospace;
       font-weight: 600;
-      color: #FFD700;
+      color: var(--gold-color);
     }
   }
 }

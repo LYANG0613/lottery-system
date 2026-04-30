@@ -12,7 +12,7 @@
     <header class="page-header">
       <div class="header-content">
         <div class="header-left">
-          <h1 class="page-title">{{ store.state.eventName || '企业年度盛典' }}</h1>
+          <h1 class="page-title">{{ store.state.eventName || '2026开工大促' }}</h1>
           <div class="header-divider">
             <span class="divider-line"></span>
             <span class="divider-star">&#10022;</span>
@@ -70,7 +70,32 @@
           <div class="group-header">
             <div class="group-badge">{{ getLevelLabel(group.prize.level) }}</div>
             <div class="group-info">
-              <span class="group-name">{{ group.prize.name }}</span>
+              <div
+                v-if="getPrizeImageList(group.prize).length > 0"
+                class="group-image"
+                @mouseenter="startAutoPlay(group.prize.id, group.prize)"
+                @mouseleave="stopAutoPlay(group.prize.id)"
+              >
+                <img
+                  :src="getPrizeImageList(group.prize)[getPrizeImageIndex(group.prize.id, group.prize)]"
+                  alt=""
+                  @error="e => (e.target as HTMLImageElement).style.display = 'none'"
+                />
+                <div v-if="getPrizeImageList(group.prize).length > 1" class="img-dots">
+                  <span
+                    v-for="(_, i) in getPrizeImageList(group.prize)"
+                    :key="i"
+                    class="dot"
+                    :class="{ active: i === getPrizeImageIndex(group.prize.id, group.prize) }"
+                  ></span>
+                </div>
+              </div>
+              <div class="group-text">
+                <span class="group-name">{{ group.prize.name }}</span>
+                <div v-if="group.prize.items && group.prize.items.length > 0" class="group-items">
+                  <span v-for="item in group.prize.items" :key="item.id" class="item-tag">{{ item.name }}</span>
+                </div>
+              </div>
               <span class="group-count">{{ group.winners.length }} 名</span>
             </div>
           </div>
@@ -96,18 +121,39 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Trophy, Location, FullScreen, Close, HomeFilled, ArrowLeft } from '@element-plus/icons-vue'
 import { useLotteryStore } from '../stores/lottery'
+import { getLevelLabel, updatePageTitle } from '../composables/useConstants'
 import type { Winner, Prize } from '../types'
 
 const router = useRouter()
 const store = useLotteryStore()
 
+// 页面标题
+updatePageTitle(store.state.eventName)
+watch(() => store.state.eventName, (name) => {
+  updatePageTitle(name)
+})
+
 // 全屏状态
 const isFullscreen = ref(false)
 const soundEnabled = ref(true)
+
+// 多图轮播状态
+const prizeImageIndices = ref<Record<string, number>>({})
+const autoPlayTimers = ref<Record<string, ReturnType<typeof setInterval>>>({})
+const AUTO_PLAY_INTERVAL = 3000
+
+onMounted(() => {
+  document.addEventListener('fullscreenchange', onFullscreenChange)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('fullscreenchange', onFullscreenChange)
+  Object.keys(autoPlayTimers.value).forEach(id => stopAutoPlay(id))
+})
 
 function toggleFullscreen() {
   if (!document.fullscreenElement) {
@@ -125,13 +171,34 @@ function onFullscreenChange() {
   isFullscreen.value = !!document.fullscreenElement
 }
 
-onMounted(() => {
-  document.addEventListener('fullscreenchange', onFullscreenChange)
-})
+// 多图轮播工具
+function getPrizeImageList(prize: Prize | undefined): string[] {
+  if (!prize) return []
+  return prize.images?.length ? prize.images : prize.image ? [prize.image] : []
+}
 
-onUnmounted(() => {
-  document.removeEventListener('fullscreenchange', onFullscreenChange)
-})
+function getPrizeImageIndex(prizeId: string, prize: Prize | undefined): number {
+  const list = getPrizeImageList(prize)
+  const current = prizeImageIndices.value[prizeId] ?? 0
+  return list.length > 0 ? current % list.length : 0
+}
+
+function startAutoPlay(prizeId: string, prize: Prize | undefined) {
+  const list = getPrizeImageList(prize)
+  if (list.length <= 1) return
+  if (autoPlayTimers.value[prizeId]) clearInterval(autoPlayTimers.value[prizeId])
+  autoPlayTimers.value[prizeId] = setInterval(() => {
+    const idx = prizeImageIndices.value[prizeId] ?? 0
+    prizeImageIndices.value[prizeId] = (idx + 1) % list.length
+  }, AUTO_PLAY_INTERVAL)
+}
+
+function stopAutoPlay(prizeId: string) {
+  if (autoPlayTimers.value[prizeId]) {
+    clearInterval(autoPlayTimers.value[prizeId])
+    delete autoPlayTimers.value[prizeId]
+  }
+}
 
 interface WinnerGroup {
   prize: Prize
@@ -150,17 +217,14 @@ const groupedWinners = computed<WinnerGroup[]>(() => {
   return Object.values(groups).sort((a, b) => a.prize.level - b.prize.level)
 })
 
-function getLevelLabel(level: number): string {
-  const labels: Record<number, string> = {
-    1: '特等奖',
-    2: '一等奖',
-    3: '二等奖',
-    4: '三等奖',
-    5: '四等奖',
-    6: '参与奖'
-  }
-  return labels[level] || `等级${level}`
-}
+// Auto-start carousel for all groups on mount
+watch(groupedWinners, (groups) => {
+  groups.forEach(group => {
+    if (getPrizeImageList(group.prize).length > 1) {
+      startAutoPlay(group.prize.id, group.prize)
+    }
+  })
+}, { immediate: true })
 
 function particleStyle(_index: number) {
   return {
@@ -256,13 +320,13 @@ function particleStyle(_index: number) {
 .page-title {
   font-size: 32px;
   font-weight: 800;
-  background: linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FFD700 100%);
+  background: linear-gradient(135deg, var(--gold-color) 0%, var(--gold-dark) 50%, var(--gold-color) 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   animation: title-shine 3s linear infinite;
-  letter-spacing: 4px;
+  letter-spacing: 2px;
   margin-bottom: 8px;
 }
 
@@ -378,7 +442,7 @@ function particleStyle(_index: number) {
     background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, var(--card-bg) 100%);
 
     .group-badge {
-      background: linear-gradient(135deg, #FFD700, #FFA500);
+      background: linear-gradient(135deg, var(--gold-color), var(--gold-dark));
       font-size: 18px;
       padding: 8px 24px;
     }
@@ -393,6 +457,26 @@ function particleStyle(_index: number) {
   &.level-3 {
     .group-badge {
       background: linear-gradient(135deg, #CD7F32, #B8860B);
+    }
+  }
+
+  &.level-4 {
+    .group-badge {
+      background: linear-gradient(135deg, #4169E1, #1E40AF);
+      color: #fff;
+    }
+  }
+
+  &.level-5 {
+    .group-badge {
+      background: linear-gradient(135deg, #6B7280, #4B5563);
+      color: #fff;
+    }
+  }
+
+  &.level-6 {
+    .group-badge {
+      background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
     }
   }
 }
@@ -413,18 +497,85 @@ function particleStyle(_index: number) {
     font-size: 16px;
     font-weight: 700;
     letter-spacing: 2px;
+    flex-shrink: 0;
+  }
+
+  .group-image {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    cursor: pointer;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  }
+
+  .img-dots {
+    position: absolute;
+    bottom: 4px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 3px;
+
+    .dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.4);
+      transition: all 0.3s;
+
+      &.active {
+        background: var(--gold-color);
+        width: 8px;
+        border-radius: 2px;
+      }
+    }
+  }
+
+  .group-text {
+    flex: 1;
+    min-width: 0;
   }
 
   .group-info {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 16px;
+    flex: 1;
+    min-width: 0;
   }
 
   .group-name {
     font-size: 22px;
     font-weight: 700;
     color: var(--text-primary);
+    display: block;
+  }
+
+  .group-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+
+    .item-tag {
+      padding: 2px 10px;
+      background: rgba(255, 215, 0, 0.12);
+      border: 1px solid rgba(255, 215, 0, 0.25);
+      border-radius: 10px;
+      font-size: 12px;
+      color: rgba(255, 215, 0, 0.85);
+    }
   }
 
   .group-count {
@@ -433,6 +584,7 @@ function particleStyle(_index: number) {
     background: rgba(255, 255, 255, 0.05);
     padding: 4px 12px;
     border-radius: 12px;
+    flex-shrink: 0;
   }
 }
 
@@ -472,7 +624,7 @@ function particleStyle(_index: number) {
 .winner-sn {
   font-size: 28px;
   font-weight: 800;
-  background: linear-gradient(135deg, #FFD700, #FFA500);
+  background: linear-gradient(135deg, var(--gold-color), var(--gold-dark));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

@@ -1,8 +1,14 @@
-import { reactive, watch, ref } from 'vue'
+import { watch, ref, reactive } from 'vue'
 import type { Participant, Prize, Winner } from '../types'
+import {
+  setStateData,
+  getStateData,
+  clearStateData
+} from '../composables/useLargeStorage'
 
 const STORAGE_KEY = 'lottery-system-data'
 const BACKUP_KEY = 'lottery-system-backup'
+const IDB_METADATA_KEY = 'idb-saved'
 
 export interface LotteryState {
   eventName: string
@@ -13,16 +19,27 @@ export interface LotteryState {
 }
 
 export interface BackupData {
-  state: LotteryState
+  state: Partial<LotteryState>
   timestamp: number
   description: string
 }
 
-function loadFromStorage(): LotteryState {
+function defaultState(): LotteryState {
+  return {
+    eventName: '',
+    companyLogo: import.meta.env.BASE_URL + 'logo.svg',
+    participants: [],
+    prizes: [],
+    winners: []
+  }
+}
+
+// 同步加载：优先从 localStorage 读取（同步，保证初始化时就拿到数据）
+function loadFromStorageSync(): LotteryState {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
-      const data = JSON.parse(saved)
+      const data = JSON.parse(saved) as LotteryState
       if (data.winners) {
         data.winners = data.winners.map((w: Winner) => ({
           ...w,
@@ -34,64 +51,120 @@ function loadFromStorage(): LotteryState {
   } catch (e) {
     console.warn('Failed to load from storage:', e)
   }
-  return {
-    eventName: '',
-    companyLogo: import.meta.env.BASE_URL + 'logo.svg',
-    participants: [],
-    prizes: [],
-    winners: []
+  return defaultState()
+}
+
+// 同步保存到 localStorage
+function saveToLocalStorage(state: LotteryState): boolean {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    return true
+  } catch (e: unknown) {
+    if (e instanceof DOMException && (e.name === 'QuotaExceededError' || e.code === 22)) {
+      return false
+    }
+    console.warn('Failed to save to localStorage:', e)
+    return false
   }
 }
 
-function saveToStorage(state: LotteryState) {
+// 异步加载：从 IndexedDB 恢复（仅在 localStorage 为空时使用）
+async function loadFromIndexedDB(): Promise<void> {
+  if (localStorage.getItem(IDB_METADATA_KEY) !== 'true') return
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    const idbData = await getStateData()
+    if (idbData) {
+      const data = JSON.parse(idbData) as LotteryState
+      if (data.winners) {
+        data.winners = data.winners.map((w: Winner) => ({
+          ...w,
+          winTime: new Date(w.winTime)
+        }))
+      }
+      Object.assign(state, data)
+    }
   } catch (e) {
-    console.warn('Failed to save to storage:', e)
+    console.warn('Failed to load from IndexedDB:', e)
   }
 }
+
+// 异步保存到 IndexedDB（大数据溢出时降级）
+async function saveToIndexedDB(stateData: LotteryState): Promise<void> {
+  try {
+    const serialized = JSON.stringify(stateData)
+    await setStateData(serialized)
+    localStorage.setItem(IDB_METADATA_KEY, 'true')
+  } catch (e) {
+    console.warn('Failed to save to IndexedDB:', e)
+  }
+}
+
+function loadFromLocalStorage<T>(key: string): T | null {
+  try {
+    const saved = localStorage.getItem(key)
+    if (saved) return JSON.parse(saved) as T
+  } catch {
+    // ignore
+  }
+  return null
+}
+
+function saveToLocalStorageRaw(key: string, data: unknown): boolean {
+  try {
+    localStorage.setItem(key, JSON.stringify(data))
+    return true
+  } catch {
+    return false
+  }
+}
+
+// 全局状态：同步初始化，确保组件挂载时已有数据
+const state = reactive<LotteryState>(loadFromStorageSync())
 
 // 离开页面警告标记
 const hasUnsavedChanges = ref(false)
 
-// 备份相关
+// 存储就绪状态（等待 IndexedDB 数据恢复）
+const storageReady = ref(false)
+
+// 备份相关（不存储 base64 图片，避免 localStorage 溢出）
 function createBackup(description: string = '手动备份'): BackupData | null {
-  try {
-    const backup: BackupData = {
-      state: JSON.parse(JSON.stringify(state)),
-      timestamp: Date.now(),
-      description
+  const stateWithoutBase64: Partial<LotteryState> = {}
+  const entries = Object.entries(state) as [keyof LotteryState, unknown][]
+  for (const [key, value] of entries) {
+    if (key === 'companyLogo') {
+      stateWithoutBase64[key] = '' as never
+    } else if (Array.isArray(value)) {
+      stateWithoutBase64[key] = [...value] as never
+    } else {
+      stateWithoutBase64[key] = value as never
     }
-    localStorage.setItem(BACKUP_KEY, JSON.stringify(backup))
-    return backup
-  } catch (e) {
-    console.warn('Failed to create backup:', e)
-    return null
   }
+  const backup: BackupData = {
+    state: stateWithoutBase64,
+    timestamp: Date.now(),
+    description
+  }
+  const ok = saveToLocalStorageRaw(BACKUP_KEY, backup)
+  return ok ? backup : null
 }
 
 function getBackup(): BackupData | null {
-  try {
-    const saved = localStorage.getItem(BACKUP_KEY)
-    if (saved) {
-      const backup = JSON.parse(saved)
-      backup.state.winners = backup.state.winners.map((w: Winner) => ({
-        ...w,
-        winTime: new Date(w.winTime)
-      }))
-      return backup
-    }
-  } catch (e) {
-    console.warn('Failed to get backup:', e)
+  const backup = loadFromLocalStorage<BackupData>(BACKUP_KEY)
+  if (backup && backup.state.winners) {
+    backup.state.winners = backup.state.winners.map((w: Winner) => ({
+      ...w,
+      winTime: new Date(w.winTime)
+    }))
   }
-  return null
+  return backup
 }
 
 function clearBackup() {
   try {
     localStorage.removeItem(BACKUP_KEY)
-  } catch (e) {
-    console.warn('Failed to clear backup:', e)
+  } catch {
+    // ignore
   }
 }
 
@@ -105,18 +178,29 @@ function restoreFromBackup(): boolean {
   return false
 }
 
-const state = reactive<LotteryState>(loadFromStorage())
+// 初始化：从 IndexedDB 恢复大数据（异步，不阻塞初始化）
+loadFromIndexedDB().then(() => {
+  storageReady.value = true
+})
 
 // 自动保存（带防抖）
 let saveTimer: ReturnType<typeof setTimeout> | null = null
 
 watch(
   () => state,
-  () => {
+  async () => {
     hasUnsavedChanges.value = true
     if (saveTimer) clearTimeout(saveTimer)
-    saveTimer = setTimeout(() => {
-      saveToStorage(state)
+    saveTimer = setTimeout(async () => {
+      // 先尝试同步保存到 localStorage
+      const saved = saveToLocalStorage(state)
+      if (!saved) {
+        // localStorage 满了，降级到 IndexedDB
+        await saveToIndexedDB(state)
+      } else {
+        // 同步保存成功，同时异步备份到 IndexedDB
+        saveToIndexedDB(state)
+      }
       hasUnsavedChanges.value = false
     }, 500)
   },
@@ -201,11 +285,14 @@ export function useLotteryStore() {
     state.winners = []
   }
 
-  function clearAll() {
+  async function clearAll() {
     state.participants = []
     state.prizes = []
     state.winners = []
+    state.companyLogo = import.meta.env.BASE_URL + 'logo.svg'
     clearBackup()
+    localStorage.removeItem(IDB_METADATA_KEY)
+    await clearStateData()
   }
 
   function getAvailableParticipants(): Participant[] {
@@ -227,6 +314,7 @@ export function useLotteryStore() {
   return {
     state,
     hasUnsavedChanges,
+    storageReady,
     createBackup,
     getBackup,
     restoreFromBackup,

@@ -63,7 +63,8 @@
               <div
                 v-if="getPrizeImageList(currentPrize).length > 0"
                 class="prize-image"
-                @click="nextPrizeImage(currentPrize.id, currentPrize)"
+                @mouseenter="startAutoPlay(currentPrize.id, currentPrize)"
+                @mouseleave="stopAutoPlay(currentPrize.id)"
               >
                 <img
                   :src="getPrizeImageList(currentPrize)[getPrizeImageIndex(currentPrize.id, currentPrize)]"
@@ -82,6 +83,9 @@
               <div class="prize-level-badge">{{ getLevelLabel(currentPrize.level) }}</div>
               <div class="prize-round-badge">第 {{ currentRoundIndex }} 轮</div>
               <div class="prize-name">{{ currentPrize.name }}</div>
+              <div v-if="currentPrize.items && currentPrize.items.length > 0" class="prize-items">
+                <span v-for="item in currentPrize.items" :key="item.id" class="prize-item-tag">{{ item.name }}</span>
+              </div>
               <div class="prize-info">
                 <el-tag type="warning" size="large">
                   {{ currentPrize.count }} 名
@@ -124,7 +128,7 @@
                   'is-done': getRemainingPrizeCount(prize.id) === 0
                 }"
               >
-                <div class="item-thumb" @click="nextPrizeImage(prize.id, prize)">
+                <div class="item-thumb" @mouseenter="startAutoPlay(prize.id, prize)" @mouseleave="stopAutoPlay(prize.id)">
                   <img
                     v-if="getPrizeImageList(prize).length > 0"
                     :src="getPrizeImageList(prize)[getPrizeImageIndex(prize.id, prize)]"
@@ -144,6 +148,9 @@
                 <div class="item-left">
                   <span class="item-rank">{{ getLevelLabel(prize.level) }}</span>
                   <span class="item-name">{{ prize.name }}</span>
+                  <div v-if="prize.items && prize.items.length > 0" class="item-items">
+                    <span v-for="item in prize.items" :key="item.id" class="item-tag">{{ item.name }}</span>
+                  </div>
                 </div>
                 <div class="item-right">
                   <span class="item-count">
@@ -279,7 +286,8 @@
                 <div
                   v-if="getPrizeImageList(roundWinners[0]?.prize).length > 0"
                   class="rwc-thumb"
-                  @click="nextPrizeImage(roundWinners[0]?.prize?.id || '', roundWinners[0]?.prize)"
+                  @mouseenter="startAutoPlay(roundWinners[0]?.prize?.id || '', roundWinners[0]?.prize)"
+                  @mouseleave="stopAutoPlay(roundWinners[0]?.prize?.id || '')"
                 >
                   <img
                     :src="getPrizeImageList(roundWinners[0]?.prize)[getPrizeImageIndex(roundWinners[0]?.prize?.id || '', roundWinners[0]?.prize)]"
@@ -300,6 +308,9 @@
                 <div class="rwc-region">
                   <el-icon><Location /></el-icon>
                   {{ winner.participant.region }}
+                </div>
+                <div v-if="roundWinners[0]?.prize?.items && roundWinners[0]?.prize?.items.length > 0" class="rwc-items">
+                  <span v-for="item in roundWinners[0]?.prize?.items" :key="item.id" class="rwc-item-tag">{{ item.name }}</span>
                 </div>
               </div>
             </div>
@@ -353,7 +364,8 @@
                   <div
                     v-if="getPrizeImageList(group.prize).length > 0"
                     class="cg-thumb"
-                    @click="nextPrizeImage(group.prize.id, group.prize)"
+                    @mouseenter="startAutoPlay(group.prize.id, group.prize)"
+                    @mouseleave="stopAutoPlay(group.prize.id)"
                   >
                     <img
                       :src="getPrizeImageList(group.prize)[getPrizeImageIndex(group.prize.id, group.prize)]"
@@ -373,6 +385,9 @@
                     <div class="cg-sn">{{ winner.participant.machineCode }}</div>
                     <div class="cg-company">{{ winner.participant.companyName }}</div>
                     <div class="cg-region">{{ winner.participant.region }}</div>
+                    <div v-if="group.prize.items && group.prize.items.length > 0" class="cg-items">
+                      <span v-for="item in group.prize.items" :key="item.id" class="cg-item-tag">{{ item.name }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -430,6 +445,8 @@ const isFullscreen = ref(false)
 
 // 多图轮播状态
 const prizeImageIndices = ref<Record<string, number>>({})
+const autoPlayTimers = ref<Record<string, ReturnType<typeof setInterval>>>({})
+const AUTO_PLAY_INTERVAL = 3000
 
 // 粒子背景数据（挂载时生成一次，避免每次渲染重算）
 const PARTICLE_COLORS = ['var(--gold-color)', 'var(--gold-dark)', '#1E90FF', '#FF69B4', '#00CED1', '#7CFC00']
@@ -490,6 +507,8 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('fullscreenchange', onFullscreenChange)
+  // Clear all auto-play timers
+  Object.keys(autoPlayTimers.value).forEach(id => stopAutoPlay(id))
 })
 
 // 抽奖逻辑
@@ -521,6 +540,13 @@ const winnerIds = computed(() => store.state.winners.map(w => w.participant.id))
 const currentPrize = computed(() => {
   return store.getNextAvailablePrize()
 })
+
+// Auto-start carousel when current prize changes
+watch(() => currentPrize.value, (prize) => {
+  if (prize) {
+    startAutoPlay(prize.id, prize)
+  }
+}, { immediate: true })
 
 const currentDrawIndex = computed(() => {
   if (!currentPrize.value) return 1
@@ -574,11 +600,21 @@ function getPrizeImageIndex(prizeId: string, prize: Prize | undefined): number {
   return list.length > 0 ? current % list.length : 0
 }
 
-function nextPrizeImage(prizeId: string, prize: Prize | undefined) {
+function startAutoPlay(prizeId: string, prize: Prize | undefined) {
   const list = getPrizeImageList(prize)
   if (list.length <= 1) return
-  const current = prizeImageIndices.value[prizeId] ?? 0
-  prizeImageIndices.value[prizeId] = (current + 1) % list.length
+  if (autoPlayTimers.value[prizeId]) clearInterval(autoPlayTimers.value[prizeId])
+  autoPlayTimers.value[prizeId] = setInterval(() => {
+    const idx = prizeImageIndices.value[prizeId] ?? 0
+    prizeImageIndices.value[prizeId] = (idx + 1) % list.length
+  }, AUTO_PLAY_INTERVAL)
+}
+
+function stopAutoPlay(prizeId: string) {
+  if (autoPlayTimers.value[prizeId]) {
+    clearInterval(autoPlayTimers.value[prizeId])
+    delete autoPlayTimers.value[prizeId]
+  }
 }
 
 const isAllComplete = computed(() => {
@@ -710,53 +746,53 @@ function exportWinners() {
 .header-content {
   max-width: 1600px;
   margin: 0 auto;
-  padding: 20px 80px;
+  padding: 12px 80px;
   display: flex;
   justify-content: center;
   position: relative;
 
   @media (max-width: 768px) {
-    padding: 16px 20px;
+    padding: 10px 20px;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
   }
 }
 
 .logo-section {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 14px;
 }
 
 .company-logo {
   position: relative;
-  width: 70px;
-  height: 70px;
-  border-radius: 16px;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
   overflow: hidden;
   background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.05));
   border: 2px solid rgba(255, 215, 0, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.2);
+  box-shadow: 0 4px 16px rgba(255, 215, 0, 0.2);
   transition: all 0.3s ease;
 
   &:hover {
     transform: scale(1.05);
-    box-shadow: 0 6px 30px rgba(255, 215, 0, 0.3);
+    box-shadow: 0 6px 24px rgba(255, 215, 0, 0.3);
   }
 
   .logo-img {
     width: 100%;
     height: 100%;
     object-fit: contain;
-    padding: 4px;
+    padding: 3px;
   }
 
   .logo-placeholder {
-    font-size: 32px;
+    font-size: 24px;
     font-weight: 700;
     color: var(--gold-color);
   }
@@ -765,11 +801,11 @@ function exportWinners() {
 .title-area {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .site-title {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 800;
   background: linear-gradient(135deg, var(--gold-color) 0%, var(--gold-dark) 50%, var(--gold-color) 100%);
   background-size: 200% auto;
@@ -797,10 +833,10 @@ function exportWinners() {
 .page-main {
   position: relative;
   z-index: 1;
-  padding: 32px;
+  padding: 16px 32px 32px;
 
   @media (max-width: 768px) {
-    padding: 16px;
+    padding: 12px 16px;
   }
 }
 
@@ -808,40 +844,82 @@ function exportWinners() {
   max-width: 1600px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 380px 1fr 380px;
-  gap: 28px;
-  align-items: start;
+  grid-template-columns: 360px 1fr 360px;
+  grid-template-rows: 1fr;
+  gap: 24px;
+  align-items: center;
+  min-height: calc(100vh - 120px);
 
   @media (max-width: 1400px) {
-    grid-template-columns: 340px 1fr 340px;
+    grid-template-columns: 320px 1fr 320px;
+    gap: 20px;
   }
 
   @media (max-width: 1024px) {
-    grid-template-columns: 300px 1fr 300px;
-    gap: 20px;
+    grid-template-columns: 280px 1fr 280px;
+    gap: 16px;
+    align-items: start;
+    min-height: auto;
   }
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 14px;
   }
 }
 
 .prize-panel {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  padding-right: 4px;
+
+  &::-webkit-scrollbar {
+    width: 3px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 215, 0, 0.2);
+    border-radius: 2px;
+  }
 }
 
 .center-area {
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
+  width: 100%;
 }
 
 .winners-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  padding-left: 4px;
+
+  &::-webkit-scrollbar {
+    width: 3px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 215, 0, 0.2);
+    border-radius: 2px;
+  }
+
   @media (max-width: 768px) {
     order: 3;
+    max-height: 400px;
   }
 }
 
@@ -930,6 +1008,24 @@ function exportWinners() {
     color: var(--gold-color);
     margin-bottom: 12px;
     text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+  }
+
+  .prize-items {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 12px;
+    padding: 0 20px;
+
+    .prize-item-tag {
+      padding: 3px 10px;
+      background: rgba(255, 215, 0, 0.12);
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      border-radius: 12px;
+      font-size: 12px;
+      color: rgba(255, 215, 0, 0.9);
+    }
   }
 
   .prize-info {
@@ -1092,6 +1188,22 @@ function exportWinners() {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    .item-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 3px;
+
+      .item-tag {
+        padding: 1px 6px;
+        background: rgba(255, 215, 0, 0.1);
+        border: 1px solid rgba(255, 215, 0, 0.2);
+        border-radius: 6px;
+        font-size: 10px;
+        color: rgba(255, 215, 0, 0.7);
+      }
     }
   }
 
@@ -1464,6 +1576,23 @@ function exportWinners() {
       color: rgba(255, 215, 0, 0.5);
     }
   }
+
+  .rwc-items {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 4px;
+
+    .rwc-item-tag {
+      padding: 2px 8px;
+      background: rgba(255, 215, 0, 0.1);
+      border: 1px solid rgba(255, 215, 0, 0.25);
+      border-radius: 8px;
+      font-size: 11px;
+      color: rgba(255, 215, 0, 0.8);
+    }
+  }
 }
 
 @keyframes roundCardIn {
@@ -1659,6 +1788,22 @@ function exportWinners() {
     .cg-region {
       font-size: 12px;
       color: var(--text-muted);
+    }
+
+    .cg-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 4px;
+
+      .cg-item-tag {
+        padding: 1px 6px;
+        background: rgba(255, 215, 0, 0.1);
+        border: 1px solid rgba(255, 215, 0, 0.2);
+        border-radius: 6px;
+        font-size: 10px;
+        color: rgba(255, 215, 0, 0.7);
+      }
     }
   }
 }

@@ -249,6 +249,25 @@
             placeholder="奖品描述（可选）"
           />
         </el-form-item>
+        <el-form-item label="奖品物品">
+          <div class="items-list">
+            <div v-for="(item, idx) in prizeForm.items" :key="item.id" class="item-row">
+              <el-input
+                v-model="item.name"
+                placeholder="物品名称，如：iPhone 15"
+                size="small"
+              />
+              <el-button type="danger" size="small" link @click="removePrizeItem(idx)">
+                <el-icon><Delete /></el-icon>
+              </el-button>
+            </div>
+            <el-button type="primary" size="small" @click="addPrizeItem">
+              <el-icon><Plus /></el-icon>
+              添加物品
+            </el-button>
+          </div>
+          <p class="upload-tip">可添加多个物品，例如：一等奖包含 iPhone、AirPods</p>
+        </el-form-item>
         <el-form-item label="奖品图片">
           <div class="images-upload-grid">
             <div
@@ -297,10 +316,14 @@ import ParticipantImport from '../components/ParticipantImport.vue'
 import WinnerList from '../components/WinnerList.vue'
 import { useLotteryStore } from '../stores/lottery'
 import { exportToExcel } from '../composables/useExcel'
-import type { Participant, Prize } from '../types'
+import { getLevelLabel, updatePageTitle } from '../composables/useConstants'
+import type { Participant, Prize, PrizeItem } from '../types'
 
 const router = useRouter()
 const store = useLotteryStore()
+
+// 页面标题
+updatePageTitle(store.state.eventName)
 
 const expandedSections = reactive({
   settings: true,
@@ -318,12 +341,21 @@ const prizeForm = reactive({
   level: 3,
   count: 1,
   description: '',
-  images: [] as string[]
+  images: [] as string[],
+  items: [] as PrizeItem[]
 })
 
 const showPrizeDialog = ref(false)
 const isDragover = ref(false)
 const imageInputRef = ref<HTMLInputElement | null>(null)
+
+function addPrizeItem() {
+  prizeForm.items.push({ id: Date.now().toString(36) + Math.random().toString(36).substring(2), name: '' })
+}
+
+function removePrizeItem(index: number) {
+  prizeForm.items.splice(index, 1)
+}
 
 // 备份状态
 const lastBackup = computed(() => store.getBackup())
@@ -408,21 +440,10 @@ function toggleSection(section: keyof typeof expandedSections) {
   expandedSections[section] = !expandedSections[section]
 }
 
-function getLevelLabel(level: number): string {
-  const labels: Record<number, string> = {
-    1: '特等奖',
-    2: '一等奖',
-    3: '二等奖',
-    4: '三等奖',
-    5: '四等奖',
-    6: '参与奖'
-  }
-  return labels[level] || `等级${level}`
-}
-
 function saveSettings() {
   store.setEventName(settingsForm.eventName)
   store.setCompanyLogo(settingsForm.companyLogo)
+  updatePageTitle(settingsForm.eventName)
   ElMessage.success('设置已保存')
 }
 
@@ -438,7 +459,8 @@ function handleAddPrize() {
     level: prizeForm.level,
     count: prizeForm.count,
     description: prizeForm.description,
-    images: [...prizeForm.images]
+    images: [...prizeForm.images],
+    items: [...prizeForm.items]
   }
 
   store.addPrize(newPrize)
@@ -449,6 +471,7 @@ function handleAddPrize() {
   prizeForm.count = 1
   prizeForm.description = ''
   prizeForm.images = []
+  prizeForm.items = []
   showPrizeDialog.value = false
 }
 
@@ -557,7 +580,7 @@ function goToLottery() {
 .header-content {
   max-width: 1600px;
   margin: 0 auto;
-  padding: 16px 24px;
+  padding: 20px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -570,14 +593,15 @@ function goToLottery() {
 }
 
 .company-logo {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-sm);
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
 
   img {
     width: 100%;
@@ -586,16 +610,17 @@ function goToLottery() {
   }
 
   .logo-placeholder {
-    font-size: 20px;
+    font-size: 24px;
     font-weight: 700;
     color: #fff;
   }
 }
 
 .site-title {
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 24px;
+  font-weight: 700;
   color: var(--text-primary);
+  letter-spacing: 0.5px;
 }
 
 .header-actions {
@@ -821,6 +846,23 @@ function goToLottery() {
   }
 }
 
+.items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+
+  .item-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .el-input {
+      flex: 1;
+    }
+  }
+}
+
 .upload-tip {
   margin-top: 6px;
   font-size: 12px;
@@ -828,12 +870,14 @@ function goToLottery() {
 }
 
 .preview-logo {
-  margin-top: 8px;
+  margin-top: 12px;
 
   img {
-    max-width: 100px;
-    max-height: 60px;
-    border-radius: var(--radius-sm);
+    max-width: 160px;
+    max-height: 80px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--card-border);
+    object-fit: contain;
   }
 }
 

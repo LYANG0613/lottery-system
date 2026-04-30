@@ -11,6 +11,12 @@ export interface Participant {
   [key: string]: string | undefined
 }
 
+export interface PrizeItem {
+  id: string
+  name: string
+  image?: string
+}
+
 export interface Prize {
   id: string
   name: string
@@ -19,6 +25,7 @@ export interface Prize {
   description?: string
   image?: string       // 兼容旧数据（单张）
   images?: string[]   // 多张图片
+  items?: PrizeItem[] // 奖项包含的多个物品
 }
 
 export interface Winner {

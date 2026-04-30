@@ -24,9 +24,34 @@
       <div class="display-container">
         <!-- 奖项标签 -->
         <div class="prize-badge" :class="{ 'prize-active': currentPrize }" v-if="currentPrize">
-          <span class="prize-label">当前奖项</span>
-          <span class="prize-name">{{ currentPrize.name }}</span>
-          <span class="prize-count">第 {{ drawIndex }} 轮 · 共 {{ currentPrize.count }} 名</span>
+          <div
+            v-if="getPrizeImageList(currentPrize).length > 0"
+            class="badge-image"
+            @mouseenter="startAutoPlay"
+            @mouseleave="stopAutoPlay"
+          >
+            <img
+              :src="getPrizeImageList(currentPrize)[currentImageIndex]"
+              alt=""
+              @error="e => (e.target as HTMLImageElement).style.display = 'none'"
+            />
+            <div v-if="getPrizeImageList(currentPrize).length > 1" class="img-dots">
+              <span
+                v-for="(_, i) in getPrizeImageList(currentPrize)"
+                :key="i"
+                class="dot"
+                :class="{ active: i === currentImageIndex }"
+              ></span>
+            </div>
+          </div>
+          <div class="badge-text">
+            <span class="prize-label">当前奖项</span>
+            <span class="prize-name">{{ currentPrize.name }}</span>
+            <div v-if="currentPrize.items && currentPrize.items.length > 0" class="prize-items">
+              <span v-for="item in currentPrize.items" :key="item.id" class="item-tag">{{ item.name }}</span>
+            </div>
+            <span class="prize-count">第 {{ drawIndex }} 轮 · 共 {{ currentPrize.count }} 名</span>
+          </div>
         </div>
 
         <!-- 滚动区域 -->
@@ -134,7 +159,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { Star, Loading } from '@element-plus/icons-vue'
 import type { Participant, Prize } from '../types'
 
@@ -170,6 +195,36 @@ const emit = defineEmits<Emits>()
 
 const showWinner = ref(false)
 
+// 多图轮播
+const currentImageIndex = ref(0)
+const AUTO_PLAY_INTERVAL = 3000
+let autoPlayTimer: ReturnType<typeof setInterval> | null = null
+
+function getPrizeImageList(prize: Prize | null): string[] {
+  if (!prize) return []
+  return prize.images?.length ? prize.images : prize.image ? [prize.image] : []
+}
+
+function startAutoPlay() {
+  const list = getPrizeImageList(props.currentPrize)
+  if (list.length <= 1) return
+  if (autoPlayTimer) clearInterval(autoPlayTimer)
+  autoPlayTimer = setInterval(() => {
+    currentImageIndex.value = (currentImageIndex.value + 1) % list.length
+  }, AUTO_PLAY_INTERVAL)
+}
+
+function stopAutoPlay() {
+  if (autoPlayTimer) {
+    clearInterval(autoPlayTimer)
+    autoPlayTimer = null
+  }
+}
+
+onUnmounted(() => {
+  if (autoPlayTimer) clearInterval(autoPlayTimer)
+})
+
 // 计算每个位置的字体大小和透明度（根据距离中心的距离）
 function getItemStyle(position: number): Record<string, string> {
   const absPos = Math.abs(position)
@@ -181,7 +236,7 @@ function getItemStyle(position: number): Record<string, string> {
       fontSize: '48px',
       opacity: '1',
       transform: 'scale(1)',
-      color: '#FFD700',
+      color: 'var(--gold-color)',
       filter: 'drop-shadow(0 0 30px rgba(255, 215, 0, 0.8))'
     }
   }
@@ -189,7 +244,7 @@ function getItemStyle(position: number): Record<string, string> {
   // 根据距离计算大小（从两边向中心变大）
   const scale = 1 - absPos * 0.15
   const opacity = 1 - absPos * 0.2
-  const fontSize = `${32 - absPos * 6}px`
+  const fontSize = `${Math.max(14, 32 - absPos * 6)}px`
   
   return {
     fontSize,
@@ -243,6 +298,15 @@ const rollingItems = computed<RollingItem[]>(() => {
   ]
 })
 
+watch(() => props.currentPrize, (prize) => {
+  if (prize) {
+    currentImageIndex.value = 0
+    startAutoPlay()
+  } else {
+    stopAutoPlay()
+  }
+})
+
 watch(() => props.displayName, (newName) => {
   if (newName && !props.isRunning) {
     showWinner.value = true
@@ -265,9 +329,9 @@ function handleStart() {
 
 function confettiStyle(index: number) {
   const colors = [
-    '#FFD700', '#FFA500', '#FF6347', '#FF69B4',
+    'var(--gold-color)', 'var(--gold-dark)', '#FF6347', '#FF69B4',
     '#1E90FF', '#00CED1', '#7CFC00', '#9370DB',
-    '#FFD700', '#FF4500', '#00FF7F', '#4169E1'
+    'var(--gold-color)', '#FF4500', '#00FF7F', '#4169E1'
   ]
   const shapes = ['50%', '0', '30%']
   return {
@@ -282,7 +346,7 @@ function confettiStyle(index: number) {
 }
 
 function particleStyle(index: number) {
-  const colors = ['#FFD700', '#FFA500', '#1E90FF', '#FF69B4', '#00CED1']
+  const colors = ['var(--gold-color)', 'var(--gold-dark)', '#1E90FF', '#FF69B4', '#00CED1']
   const angle = (index / 20) * 360 + Math.random() * 20
   const radius = 160 + Math.random() * 80
   const duration = 6 + Math.random() * 6
@@ -374,11 +438,16 @@ function sparkStyle(index: number) {
 
 .machine-container {
   position: relative;
-  width: 500px;
-  height: 500px;
+  width: 540px;
+  height: 560px;
   display: flex;
   align-items: center;
   justify-content: center;
+
+  @media (max-width: 768px) {
+    width: min(500px, 100%);
+    height: min(500px, 100%);
+  }
 }
 
 .outer-ring {
@@ -397,7 +466,7 @@ function sparkStyle(index: number) {
   background: var(--accent-color);
   border-radius: 50%;
   transform-origin: 1px 0;
-  transform: rotate(var(--angle)) translateX(240px);
+  transform: rotate(var(--angle)) translateX(270px);
   box-shadow: 0 0 10px var(--accent-color);
   animation: dot-pulse 2s ease-in-out infinite;
   animation-delay: var(--delay);
@@ -409,8 +478,8 @@ function sparkStyle(index: number) {
 }
 
 @keyframes dot-pulse {
-  0%, 100% { opacity: 0.4; transform: rotate(var(--angle)) translateX(240px) scale(1); }
-  50% { opacity: 1; transform: rotate(var(--angle)) translateX(240px) scale(1.3); }
+  0%, 100% { opacity: 0.4; transform: rotate(var(--angle)) translateX(270px) scale(1); }
+  50% { opacity: 1; transform: rotate(var(--angle)) translateX(270px) scale(1.3); }
 }
 
 .glow-ring {
@@ -443,7 +512,7 @@ function sparkStyle(index: number) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   padding: 14px 32px;
   background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 165, 0, 0.1));
   border: 1px solid rgba(255, 215, 0, 0.4);
@@ -455,6 +524,54 @@ function sparkStyle(index: number) {
     border-color: rgba(255, 215, 0, 0.6);
   }
 
+  .badge-image {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid rgba(255, 215, 0, 0.3);
+    cursor: pointer;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .img-dots {
+      position: absolute;
+      bottom: 4px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      gap: 3px;
+
+      .dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.5);
+        transition: all 0.3s;
+
+        &.active {
+          background: var(--gold-color);
+          width: 8px;
+          border-radius: 2px;
+        }
+      }
+    }
+  }
+
+  .badge-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
   .prize-label {
     font-size: 12px;
     color: rgba(255, 215, 0, 0.8);
@@ -464,9 +581,27 @@ function sparkStyle(index: number) {
   .prize-name {
     font-size: 28px;
     font-weight: 700;
-    color: #FFD700;
+    color: var(--gold-color);
     text-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
   }
+
+  .prize-items {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin: 2px 0;
+
+    .item-tag {
+      padding: 2px 10px;
+      background: rgba(255, 215, 0, 0.15);
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      border-radius: 10px;
+      font-size: 12px;
+      color: rgba(255, 215, 0, 0.9);
+    }
+  }
+
   .prize-count {
     font-size: 14px;
     color: rgba(255, 255, 255, 0.7);
@@ -480,8 +615,8 @@ function sparkStyle(index: number) {
 
 .rolling-container {
   position: relative;
-  width: 480px;
-  height: 300px;
+  width: 520px;
+  height: 340px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -492,13 +627,18 @@ function sparkStyle(index: number) {
   overflow: hidden;
   transition: all 0.3s ease;
 
+  @media (max-width: 768px) {
+    width: min(480px, 100%);
+    height: 260px;
+  }
+
   &.is-running {
     border-color: rgba(255, 215, 0, 0.5);
     box-shadow: 0 0 50px rgba(255, 215, 0, 0.2);
   }
 
   &.is-winning {
-    border-color: #FFD700;
+    border-color: var(--gold-color);
     box-shadow: 0 0 80px rgba(255, 215, 0, 0.5), 0 0 120px rgba(255, 165, 0, 0.3);
     animation: win-pulse 0.6s ease-out;
   }
@@ -592,21 +732,22 @@ function sparkStyle(index: number) {
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   white-space: nowrap;
   transition: font-size 0.15s ease, opacity 0.15s ease, transform 0.15s ease, color 0.15s ease, filter 0.15s ease;
-  height: 52px;
-  line-height: 52px;
+  height: 58px;
+  line-height: 58px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 36px;
 
   &.is-center {
-    font-size: 48px;
+    font-size: 54px;
     font-weight: 800;
     text-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 2px 10px rgba(0, 0, 0, 0.5);
 
     .is-winning & {
-      font-size: 54px;
+      font-size: 60px;
       color: #FFF !important;
-      text-shadow: 0 0 40px #FFD700, 0 0 80px #FFD700, 0 0 120px #FFA500;
+      text-shadow: 0 0 40px var(--gold-color), 0 0 80px var(--gold-color), 0 0 120px var(--gold-dark);
       animation: winner-glow-pulse 0.4s ease-in-out infinite alternate;
     }
   }
@@ -614,11 +755,11 @@ function sparkStyle(index: number) {
 
 @keyframes winner-glow-pulse {
   from {
-    text-shadow: 0 0 40px #FFD700, 0 0 80px #FFD700, 0 0 120px #FFA500;
+    text-shadow: 0 0 40px var(--gold-color), 0 0 80px var(--gold-color), 0 0 120px var(--gold-dark);
     transform: scale(1);
   }
   to {
-    text-shadow: 0 0 50px #FFD700, 0 0 100px #FFD700, 0 0 150px #FFA500;
+    text-shadow: 0 0 50px var(--gold-color), 0 0 100px var(--gold-color), 0 0 150px var(--gold-dark);
     transform: scale(1.02);
   }
 }
@@ -687,7 +828,7 @@ function sparkStyle(index: number) {
   position: absolute;
   width: 24px;
   height: 24px;
-  background: #FFD700;
+  background: var(--gold-color);
   clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
   animation: star-explode 1s ease-out forwards;
   transform-origin: center;
@@ -758,9 +899,9 @@ function sparkStyle(index: number) {
   left: 50%;
   width: 4px;
   height: 4px;
-  background: #FFD700;
+  background: var(--gold-color);
   border-radius: 50%;
-  box-shadow: 0 0 6px #FFD700, 0 0 12px #FFA500;
+  box-shadow: 0 0 6px var(--gold-color), 0 0 12px var(--gold-dark);
   animation: spark-fly 0.6s ease-out infinite;
   animation-delay: var(--delay);
 }
@@ -796,7 +937,7 @@ function sparkStyle(index: number) {
   .remain-number {
     font-size: 24px;
     font-weight: 700;
-    color: #FFD700;
+    color: var(--gold-color);
     text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
   }
 }
@@ -818,7 +959,7 @@ function sparkStyle(index: number) {
 .btn-glow {
   position: absolute;
   inset: -4px;
-  background: linear-gradient(45deg, #FFD700, #FFA500, #FFD700);
+  background: linear-gradient(45deg, var(--gold-color), var(--gold-dark), var(--gold-color));
   border-radius: 16px;
   filter: blur(15px);
   opacity: 0.6;
@@ -836,7 +977,7 @@ function sparkStyle(index: number) {
   font-size: 22px;
   font-weight: 700;
   border-radius: 14px;
-  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%) !important;
+  background: linear-gradient(135deg, var(--gold-color) 0%, var(--gold-dark) 100%) !important;
   border: none !important;
   color: #1a1a2e !important;
   box-shadow: 0 6px 30px rgba(255, 215, 0, 0.5);

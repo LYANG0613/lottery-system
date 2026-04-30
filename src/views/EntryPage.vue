@@ -31,7 +31,7 @@
       </div>
 
       <div class="entry-buttons">
-        <div class="entry-card user-card" @click="goTo('/lottery')">
+        <button class="entry-card user-card" @click="goTo('/lottery')" aria-label="进入用户端抽奖展示页面">
           <div class="card-icon">
             <svg viewBox="0 0 64 64" fill="none">
               <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="2"/>
@@ -42,9 +42,9 @@
           <h2 class="card-title">用户端</h2>
           <p class="card-desc">抽奖展示页面</p>
           <p class="card-hint">用于投影展示抽奖过程</p>
-        </div>
+        </button>
 
-        <div class="entry-card winners-card" @click="goTo('/winners')">
+        <button class="entry-card winners-card" @click="goTo('/winners')" aria-label="进入中奖公示页面">
           <div class="card-icon">
             <svg viewBox="0 0 64 64" fill="none">
               <path d="M32 8L38 22L54 24L43 35L46 52L32 45L18 52L21 35L10 24L26 22L32 8Z" stroke="currentColor" stroke-width="2" fill="none"/>
@@ -54,9 +54,9 @@
           <h2 class="card-title">中奖公示</h2>
           <p class="card-desc">中奖名单公示</p>
           <p class="card-hint">公开展示所有中奖信息</p>
-        </div>
+        </button>
 
-        <div class="entry-card admin-card" @click="goTo('/admin')">
+        <button class="entry-card admin-card" @click="goTo('/admin')" aria-label="进入管理端后台">
           <div class="card-icon">
             <svg viewBox="0 0 64 64" fill="none">
               <rect x="8" y="8" width="48" height="48" rx="8" stroke="currentColor" stroke-width="2"/>
@@ -68,7 +68,7 @@
           <h2 class="card-title">管理端</h2>
           <p class="card-desc">后台管理页面</p>
           <p class="card-hint">配置奖品、导入名单、导出结果</p>
-        </div>
+        </button>
       </div>
 
       <div class="footer-info">
@@ -250,10 +250,22 @@ function particleStyle(_index: number) {
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   backdrop-filter: blur(10px);
+  font-family: inherit;
+  color: inherit;
+  text-align: center;
+
+  &:focus-visible {
+    outline: 2px solid var(--gold-color);
+    outline-offset: 4px;
+  }
 
   &:hover {
     transform: translateY(-10px) scale(1.02);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  }
+
+  &:active {
+    transform: translateY(-6px) scale(1.01);
   }
 
   &.user-card {
@@ -280,12 +292,12 @@ function particleStyle(_index: number) {
 
   &.winners-card {
     &:hover {
-      border-color: #FFD700;
+      border-color: var(--gold-color);
       box-shadow: 0 20px 60px rgba(255, 215, 0, 0.2);
     }
 
     .card-icon {
-      color: #FFD700;
+      color: var(--gold-color);
     }
   }
 

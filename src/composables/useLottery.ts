@@ -66,19 +66,25 @@ export function useLottery() {
     isAnimating.value = true
     const winners: Winner[] = []
 
-    for (let i = 0; i < count; i++) {
-      const idx = Math.floor(Math.random() * available.length)
-      const winner = available.splice(idx, 1)[0]
+    // Fisher-Yates 洗牌，从全部可用参与者中均匀抽取
+    const pool = [...available]
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[pool[i], pool[j]] = [pool[j], pool[i]]
+    }
+    const selected = pool.slice(0, count)
+    for (let i = 0; i < selected.length; i++) {
       winners.push({
         id: Date.now().toString(36) + i,
-        participant: winner,
+        participant: selected[i],
         prize,
         winTime: new Date()
       })
     }
 
     phase = 0
-    currentCenterIdx = Math.floor(Math.random() * participants.length)
+    // 从洗牌后的池中随机选一个作为起始位置，避免偏向列表某端
+    currentCenterIdx = Math.floor(Math.random() * pool.length)
     targetIdx = 0
     rollOffset.value = 0
     targetCodeVisible.value = false
