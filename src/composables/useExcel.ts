@@ -199,5 +199,6 @@ export function exportToExcel(
   XLSX.utils.book_append_sheet(workbook, worksheet, '获奖名单')
 
   const date = new Date().toISOString().split('T')[0]
-  XLSX.writeFile(workbook, `${filename}_${date}.xlsx`)
+  const baseFilename = filename.replace(/\.xlsx?$/i, '')
+  XLSX.writeFile(workbook, `${baseFilename}_${date}.xlsx`)
 }

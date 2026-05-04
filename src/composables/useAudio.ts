@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 
-const SOUND_ROLL = '/sounds/drum_roll_long.mp3'
+const SOUND_ROLL = `${import.meta.env.BASE_URL}sounds/drum_roll_long.mp3`
 
 export function useAudio() {
   let audioContext: AudioContext | null = null

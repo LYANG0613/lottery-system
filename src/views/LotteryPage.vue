@@ -258,7 +258,7 @@
 
     <!-- 每轮抽完后全屏展示中奖名单 -->
     <transition name="celebration-fade">
-      <div v-if="roundOverlayVisible && !isLastRound" class="round-overlay">
+      <div v-if="roundOverlayVisible" class="round-overlay">
         <div class="celebration-bg"></div>
         <div class="celebration-particles">
           <span v-for="i in 40" :key="i" class="cp" :style="celebrationParticleData[i - 1]"></span>
@@ -317,7 +317,11 @@
           </div>
 
           <div class="round-actions">
-            <el-button type="primary" size="large" @click="handleContinueToNextRound">
+            <el-button v-if="isLastRound" type="primary" size="large" @click="router.push('/winners')">
+              <el-icon><Trophy /></el-icon>
+              查看公示大屏
+            </el-button>
+            <el-button v-else type="primary" size="large" @click="handleContinueToNextRound">
               继续下一轮
               <el-icon><ArrowRight /></el-icon>
             </el-button>
@@ -617,19 +621,7 @@ function stopAutoPlay(prizeId: string) {
   }
 }
 
-const isAllComplete = computed(() => {
-  if (store.state.prizes.length === 0) return false
-  return store.state.prizes.every(p => store.getRemainingPrizeCount(p.id) === 0)
-})
-
 const showCelebration = ref(false)
-
-// watch isAllComplete to auto-show celebration
-watch(isAllComplete, (val) => {
-  if (val && store.state.winners.length > 0) {
-    showCelebration.value = true
-  }
-})
 
 function handleLogoError() {
   logoError.value = true
@@ -650,6 +642,12 @@ function handleStartLottery() {
     return
   }
 
+  const availableCount = store.getAvailableParticipants().length
+  if (availableCount < remainingCount.value) {
+    ElMessage.warning(`可用参与者不足：当前还需抽取 ${remainingCount.value} 名，仅剩 ${availableCount} 名可参与`)
+    return
+  }
+
   // 记录本轮奖品信息（闭包中引用，避免抽奖后 currentPrize 切换到下一轮）
   const thisPrize = currentPrize.value
   let capturedWinners: Winner[] = []
@@ -663,11 +661,10 @@ function handleStartLottery() {
       capturedWinners = winners
     },
     () => {
-      // 延迟 300ms 展示，等待最后一个 notifyWinner（200ms 延迟）完成
+      // 延迟 300ms 展示（finishLottery 仅在 notifyWinner 之后触发，store 已一致）
       setTimeout(() => {
         roundWinners.value = capturedWinners.length > 0 ? capturedWinners : store.state.winners.filter(w => w.prize.id === thisPrize.id)
-        const isAllPrizesComplete = store.state.prizes.every(p => store.getRemainingPrizeCount(p.id) === 0)
-        isLastRound.value = isAllPrizesComplete
+        isLastRound.value = store.state.prizes.every(p => store.getRemainingPrizeCount(p.id) === 0)
         roundOverlayVisible.value = true
       }, 300)
     }
@@ -689,7 +686,7 @@ function exportWinners() {
     region: w.participant.region,
     prizeName: w.prize.name,
     winTime: new Date(w.winTime)
-  })), `${store.state.eventName || '抽奖'}-中奖名单.xlsx`)
+  })), `${store.state.eventName || '抽奖'}-中奖名单`)
   ElMessage.success('导出成功')
 }
 </script>

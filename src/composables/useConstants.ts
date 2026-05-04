@@ -10,11 +10,11 @@ const LEVEL_LABELS: Record<number, string> = {
 
 /** 奖品等级配色映射（渐变背景，iconColor, textColor） */
 const LEVEL_COLORS: Record<number, { gradient: string; iconColor: string; textColor: string }> = {
-  1: { gradient: 'linear-gradient(135deg, #FFD700, #FFA500)', iconColor: '#FFD700', textColor: '#fff' },
-  2: { gradient: 'linear-gradient(135deg, #C0C0C0, #A8A8A8)', iconColor: '#C0C0C0', textColor: '#fff' },
-  3: { gradient: 'linear-gradient(135deg, #CD7F32, #B8860B)', iconColor: '#CD7F32', textColor: '#fff' },
-  4: { gradient: 'linear-gradient(135deg, #4169E1, #1E40AF)', iconColor: '#4169E1', textColor: '#fff' },
-  5: { gradient: 'linear-gradient(135deg, #6B7280, #4B5563)', iconColor: '#9CA3AF', textColor: '#fff' },
+  1: { gradient: 'linear-gradient(135deg, #DC2626, #F59E0B)', iconColor: '#F59E0B', textColor: '#fff' },
+  2: { gradient: 'linear-gradient(135deg, #FFD700, #FFA500)', iconColor: '#FFD700', textColor: '#fff' },
+  3: { gradient: 'linear-gradient(135deg, #E5E7EB, #9CA3AF)', iconColor: '#CBD5E1', textColor: '#fff' },
+  4: { gradient: 'linear-gradient(135deg, #CD7F32, #92400E)', iconColor: '#CD7F32', textColor: '#fff' },
+  5: { gradient: 'linear-gradient(135deg, #06B6D4, #0E7490)', iconColor: '#06B6D4', textColor: '#fff' },
   6: { gradient: 'linear-gradient(135deg, #10B981, #059669)', iconColor: '#10B981', textColor: '#fff' },
 }
 

@@ -34,6 +34,11 @@ export function useLottery() {
   let phase = 0
   // 每个 phase 的滚动时长(ms)，至少5s以完整覆盖鼓点滚奏(~4.9s)
   const PHASE_DURATION = 5000
+  /** notifyWinner 相对 phase 结束的延迟，须先于 finishLottery 执行以写入 store */
+  const NOTIFY_DELAY_MS = 200
+  /** phase 结束到下一轮 phase 开始的总间隔（与原先 setTimeout(startPhase, 2000) 一致） */
+  const INTER_PHASE_GAP_MS = 2000
+  const NEXT_PHASE_AFTER_NOTIFY_MS = INTER_PHASE_GAP_MS - NOTIFY_DELAY_MS
   // 每个 roll step 的开始时间
   let stepStartTime = 0
 
@@ -161,15 +166,14 @@ export function useLottery() {
             setTimeout(() => {
               audio.playWinFanfare()
               notifyWinner(currentTarget)
-            }, 200)
+              phase++
+              if (phase < count) {
+                setTimeout(startPhase, NEXT_PHASE_AFTER_NOTIFY_MS)
+              } else {
+                finishLottery(participants, winners, onWinners, onComplete)
+              }
+            }, NOTIFY_DELAY_MS)
 
-            phase++
-
-            if (phase < count) {
-              setTimeout(startPhase, 2000)
-            } else {
-              finishLottery(participants, winners, onWinners, onComplete)
-            }
             return
           }
         } else {

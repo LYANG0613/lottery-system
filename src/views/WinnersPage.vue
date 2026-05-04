@@ -107,7 +107,10 @@
               :key="winner.id"
               class="winner-card"
             >
-              <div class="winner-sn">{{ winner.participant.machineCode }}</div>
+              <div class="winner-sn-wrapper">
+                <span class="winner-sn-label">编号</span>
+                <div class="winner-sn">{{ winner.participant.machineCode || winner.participant.name || '无编号' }}</div>
+              </div>
               <div class="winner-company">{{ winner.participant.companyName }}</div>
               <div class="winner-region">
                 <el-icon><Location /></el-icon>
@@ -244,6 +247,8 @@ function getGroupStyle(level: number) {
   return {
     '--level-gradient': c.gradient,
     '--level-icon': c.iconColor,
+    '--level-border': `${c.iconColor}66`,
+    '--level-bg': `${c.iconColor}14`,
   }
 }
 
@@ -259,10 +264,12 @@ function getItemTagStyle(level: number) {
 
 <style scoped lang="scss">
 .winners-page {
-  min-height: 100vh;
+  height: 100vh;
   position: relative;
-  overflow-x: hidden;
+  overflow: hidden;
   background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+  display: flex;
+  flex-direction: column;
 }
 
 .particle-bg {
@@ -313,8 +320,7 @@ function getItemTagStyle(level: number) {
 
 // Header
 .page-header {
-  position: sticky;
-  top: 0;
+  flex-shrink: 0;
   z-index: 100;
   background: linear-gradient(180deg, rgba(15, 15, 35, 0.98) 0%, rgba(15, 15, 35, 0.9) 100%);
   backdrop-filter: blur(20px);
@@ -398,9 +404,12 @@ function getItemTagStyle(level: number) {
 
 // Main content
 .page-main {
+  flex: 1;
+  overflow-y: auto;
   position: relative;
   z-index: 1;
   max-width: 1600px;
+  width: 100%;
   margin: 0 auto;
   padding: 40px 48px;
 }
@@ -439,112 +448,22 @@ function getItemTagStyle(level: number) {
   display: flex;
   flex-direction: column;
   gap: 32px;
+  overflow: hidden;
 }
 
 .prize-group {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
+  background: linear-gradient(135deg, var(--level-bg, rgba(255, 255, 255, 0.04)) 0%, var(--card-bg) 42%);
+  border: 1px solid var(--level-border, var(--card-border));
   border-radius: var(--radius-xl);
   padding: 28px;
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
+  overflow: hidden;
 
   &:hover {
     border-color: var(--level-icon, rgba(255, 215, 0, 0.3));
     box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
     transform: translateY(-2px);
-  }
-
-  &.level-1 {
-    border-color: rgba(255, 215, 0, 0.4);
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, var(--card-bg) 100%);
-
-    .group-badge {
-      background: linear-gradient(135deg, #FFD700, #FFA500);
-      font-size: 18px;
-      padding: 8px 24px;
-    }
-
-    .group-image {
-      border-color: rgba(255, 215, 0, 0.4);
-    }
-
-    .winner-sn {
-      background: linear-gradient(135deg, #FFD700, #FFA500);
-    }
-  }
-
-  &.level-2 {
-    .group-badge {
-      background: linear-gradient(135deg, #C0C0C0, #A8A8A8);
-    }
-
-    .group-image {
-      border-color: rgba(192, 192, 192, 0.4);
-    }
-
-    .winner-sn {
-      background: linear-gradient(135deg, #C0C0C0, #A8A8A8);
-    }
-  }
-
-  &.level-3 {
-    .group-badge {
-      background: linear-gradient(135deg, #CD7F32, #B8860B);
-    }
-
-    .group-image {
-      border-color: rgba(205, 127, 50, 0.4);
-    }
-
-    .winner-sn {
-      background: linear-gradient(135deg, #CD7F32, #B8860B);
-    }
-  }
-
-  &.level-4 {
-    .group-badge {
-      background: linear-gradient(135deg, #4169E1, #1E40AF);
-      color: #fff;
-    }
-
-    .group-image {
-      border-color: rgba(65, 105, 225, 0.4);
-    }
-
-    .winner-sn {
-      background: linear-gradient(135deg, #4169E1, #1E40AF);
-    }
-  }
-
-  &.level-5 {
-    .group-badge {
-      background: linear-gradient(135deg, #6B7280, #4B5563);
-      color: #fff;
-    }
-
-    .group-image {
-      border-color: rgba(107, 114, 128, 0.4);
-    }
-
-    .winner-sn {
-      background: linear-gradient(135deg, #6B7280, #4B5563);
-    }
-  }
-
-  &.level-6 {
-    .group-badge {
-      background: linear-gradient(135deg, #10B981, #059669);
-      color: #fff;
-    }
-
-    .group-image {
-      border-color: rgba(16, 185, 129, 0.4);
-    }
-
-    .winner-sn {
-      background: linear-gradient(135deg, #10B981, #059669);
-    }
   }
 }
 
@@ -557,7 +476,7 @@ function getItemTagStyle(level: number) {
   border-bottom: 1px solid rgba(255, 215, 0, 0.1);
 
   .group-badge {
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    background: var(--level-gradient, linear-gradient(135deg, var(--primary-color), var(--primary-light)));
     color: white;
     padding: 6px 20px;
     border-radius: 20px;
@@ -575,7 +494,7 @@ function getItemTagStyle(level: number) {
     overflow: hidden;
     flex-shrink: 0;
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 215, 0, 0.2);
+    border: 1px solid var(--level-border, rgba(255, 215, 0, 0.2));
     cursor: pointer;
 
     img {
@@ -687,15 +606,36 @@ function getItemTagStyle(level: number) {
   }
 }
 
-.winner-sn {
-  font-size: 28px;
-  font-weight: 800;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: 2px;
+.winner-sn-wrapper {
   margin-bottom: 8px;
-  background: linear-gradient(135deg, #FFD700, #FFA500);
+}
+
+.winner-sn-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.winner-sn {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 2px;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  background: var(--level-gradient, linear-gradient(135deg, #FFD700, #FFA500));
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .winner-company {
@@ -734,7 +674,7 @@ function getItemTagStyle(level: number) {
   }
 
   .winner-sn {
-    font-size: 22px;
+    font-size: 18px;
   }
 }
 </style>
