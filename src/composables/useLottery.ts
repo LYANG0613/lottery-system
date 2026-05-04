@@ -9,7 +9,7 @@ export function useLottery() {
   const isRunning = ref(false)
   const currentWinner = ref<Participant | null>(null)
   const displayName = ref<string>('')
-  const winnerList = ref<Winner[]>([...store.state.winners])
+  const winnerList = computed(() => store.state.winners)
   const animationDuration = ref(0)
   const currentTargetCode = ref<string>('')
   const visibleCodes = ref<string[]>([])
@@ -41,9 +41,25 @@ export function useLottery() {
   const NEXT_PHASE_AFTER_NOTIFY_MS = INTER_PHASE_GAP_MS - NOTIFY_DELAY_MS
   // 每个 roll step 的开始时间
   let stepStartTime = 0
+  let runId = 0
+  const pendingTimers = new Set<ReturnType<typeof setTimeout>>()
+
+  function scheduleTimer(callback: () => void, delay: number) {
+    const timer = setTimeout(() => {
+      pendingTimers.delete(timer)
+      callback()
+    }, delay)
+    pendingTimers.add(timer)
+    return timer
+  }
+
+  function clearPendingTimers() {
+    pendingTimers.forEach(timer => clearTimeout(timer))
+    pendingTimers.clear()
+  }
 
   const remainingParticipants = computed(() => {
-    const winnerIds = new Set(winnerList.value.map(w => w.participant.id))
+    const winnerIds = new Set(store.state.winners.map(w => w.participant.id))
     return (participants: Participant[]) =>
       participants.filter(p => !winnerIds.has(p.id))
   })
@@ -60,6 +76,8 @@ export function useLottery() {
     onComplete: () => void
   ) {
     if (isRunning.value) return
+    const activeRunId = ++runId
+    clearPendingTimers()
 
     const available = remainingParticipants.value(participants)
     if (available.length < count) {
@@ -117,6 +135,7 @@ export function useLottery() {
     }
 
     function startPhase() {
+      if (activeRunId !== runId) return
       rollOffset.value = 0
       targetCodeVisible.value = false
       audio.startRollingSound()
@@ -130,6 +149,8 @@ export function useLottery() {
       stepStartTime = performance.now()
 
       function doRollStep() {
+        if (activeRunId !== runId) return
+
         const phaseElapsed = performance.now() - phaseStartTime
         const phaseProgress = Math.min(phaseElapsed / phaseDuration, 1)
         const easeProgress = 1 - Math.pow(0.5, phaseProgress * 10)
@@ -163,12 +184,16 @@ export function useLottery() {
             cancelAnimationFrame(animationFrameId!)
             animationFrameId = null
 
-            setTimeout(() => {
+            scheduleTimer(() => {
+              if (activeRunId !== runId) return
               audio.playWinFanfare()
               notifyWinner(currentTarget)
               phase++
               if (phase < count) {
-                setTimeout(startPhase, NEXT_PHASE_AFTER_NOTIFY_MS)
+                scheduleTimer(() => {
+                  if (activeRunId !== runId) return
+                  startPhase()
+                }, NEXT_PHASE_AFTER_NOTIFY_MS)
               } else {
                 finishLottery(participants, winners, onWinners, onComplete)
               }
@@ -198,8 +223,9 @@ export function useLottery() {
     onWinners: (winners: Winner[]) => void,
     onComplete: () => void
   ) {
+    if (!isRunning.value) return
+    clearPendingTimers()
     audio.stopRollingSound()
-    winnerList.value.push(...winners)
     onWinners(winners)
     currentTargetCode.value = ''
     visibleCodes.value = []
@@ -215,6 +241,8 @@ export function useLottery() {
   }
 
   function stopLottery() {
+    runId++
+    clearPendingTimers()
     if (animationFrameId) {
       cancelAnimationFrame(animationFrameId)
       animationFrameId = null
@@ -235,12 +263,10 @@ export function useLottery() {
   }
 
   function removeWinner(winnerId: string) {
-    winnerList.value = winnerList.value.filter(w => w.id !== winnerId)
     store.removeWinner(winnerId)
   }
 
   function clearAllWinners() {
-    winnerList.value = []
     store.clearWinners()
   }
 

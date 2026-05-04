@@ -77,7 +77,7 @@
             <div class="card-header" @click="toggleSection('prizes')">
               <el-icon><Present /></el-icon>
               <span>奖品配置</span>
-              <el-tag type="warning" size="small">{{ store.state.prizes.length }}</el-tag>
+              <span class="count-badge count-badge--warning">{{ store.state.prizes.length }}</span>
               <el-icon class="arrow" :class="{ 'is-expanded': expandedSections.prizes }">
                 <ArrowRight />
               </el-icon>
@@ -102,7 +102,7 @@
                     <div class="prize-info">
                       <span class="prize-level">{{ getLevelLabel(prize.level) }}</span>
                       <span class="prize-name">{{ prize.name }}</span>
-                      <span class="prize-count">{{ prize.count }}名</span>
+                      <span class="prize-count">{{ prize.count }} 名</span>
                     </div>
                     <div class="prize-actions">
                       <el-button type="danger" link size="small" @click="handleDeletePrize(prize.id)">
@@ -123,7 +123,7 @@
             <div class="card-header" @click="toggleSection('participants')">
               <el-icon><User /></el-icon>
               <span>参与人员</span>
-              <el-tag type="info" size="small">{{ store.state.participants.length }}</el-tag>
+              <span class="count-badge count-badge--info">{{ store.state.participants.length }}</span>
               <el-icon class="arrow" :class="{ 'is-expanded': expandedSections.participants }">
                 <ArrowRight />
               </el-icon>
@@ -145,7 +145,7 @@
             <div class="card-header">
               <el-icon class="trophy"><Trophy /></el-icon>
               <span>中奖名单</span>
-              <el-tag type="success">{{ store.state.winners.length }} 人</el-tag>
+              <span class="count-badge count-badge--success">{{ store.state.winners.length }} 人</span>
               <div class="header-actions">
                 <el-button
                   type="primary"
@@ -714,6 +714,36 @@ function goToLottery() {
   }
 }
 
+.count-badge {
+  min-width: 34px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+  letter-spacing: 0;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+  flex-shrink: 0;
+
+  &--warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+  }
+
+  &--info {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  }
+
+  &--success {
+    min-width: 58px;
+    background: linear-gradient(135deg, #10b981, #047857);
+  }
+}
+
 .card-body {
   padding: 16px;
   border-top: 1px solid var(--card-border);
@@ -759,8 +789,17 @@ function goToLottery() {
     }
 
     .prize-count {
-      font-size: 12px;
-      color: var(--text-muted);
+      min-width: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: rgba(245, 166, 35, 0.18);
+      border: 1px solid rgba(245, 166, 35, 0.35);
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--accent-light);
     }
   }
 }

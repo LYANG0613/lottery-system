@@ -9,6 +9,8 @@ export function useAudio() {
   )
 
   let audioBufferCache: Map<string, AudioBuffer> = new Map()
+  let rollingSource: AudioBufferSourceNode | null = null
+  let rollingRequestId = 0
 
   function getContext(): AudioContext {
     if (!audioContext) {
@@ -110,16 +112,38 @@ export function useAudio() {
 
   async function startRollingSound() {
     if (!soundEnabled.value) return
+    const requestId = ++rollingRequestId
     try {
+      stopRollingSound()
       const buffer = await loadAudioBuffer(SOUND_ROLL)
+      if (requestId !== rollingRequestId || !soundEnabled.value) return
       if (!buffer) return
-      playAudioBufferOnce(buffer, 0.75)
+      rollingSource = playAudioBufferOnce(buffer, 0.75)
+      if (rollingSource) {
+        const source = rollingSource
+        source.onended = () => {
+          if (rollingSource === source) {
+            rollingSource = null
+          }
+        }
+      }
     } catch (e) {
       console.warn('Audio rolling error:', e)
     }
   }
 
   function stopRollingSound() {
+    rollingRequestId++
+    if (!rollingSource) return
+    try {
+      rollingSource.onended = null
+      rollingSource.stop()
+      rollingSource.disconnect()
+    } catch {
+      // Source may already have ended.
+    } finally {
+      rollingSource = null
+    }
   }
 
   async function playWinFanfare() {
