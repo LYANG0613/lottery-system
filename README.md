@@ -2,6 +2,8 @@
 
 一个精美、现代化的企业级抽奖系统，基于 Vue 3 + Element Plus 构建。
 
+**在线地址**: https://LYANG0613.github.io/lottery-system/
+
 ## 功能特性
 
 - **Excel导入参与者**：支持拖拽或点击上传 Excel 文件，自动解析姓名、手机号、部门等字段
@@ -18,6 +20,8 @@
 - Element Plus UI 组件库
 - xlsx (SheetJS) Excel 处理
 - SCSS 样式
+- Vitest 单元测试
+- Playwright E2E 测试
 
 ## 快速开始
 
@@ -86,22 +90,38 @@ npm run build
 ```
 lottery-system/
 ├── src/
-│   ├── components/          # Vue 组件
-│   │   ├── ParticipantImport.vue   # Excel 导入
-│   │   ├── LotteryMachine.vue      # 抽奖转盘
-│   │   ├── PrizeConfig.vue         # 奖品配置
-│   │   └── WinnerList.vue          # 获奖名单
-│   ├── composables/         # 组合式函数
-│   │   ├── useExcel.ts      # Excel 导入导出
-│   │   └── useLottery.ts    # 抽奖逻辑
-│   ├── styles/              # 样式文件
-│   │   ├── variables.scss   # CSS 变量
-│   │   └── global.scss      # 全局样式
-│   ├── types/               # TypeScript 类型
-│   ├── views/               # 页面组件
-│   ├── App.vue
-│   └── main.ts
-└── package.json
+│   ├── main.ts                    # 入口
+│   ├── App.vue                    # 根组件
+│   ├── router/index.ts            # 路由
+│   ├── stores/lottery.ts          # 状态管理（reactive 单例）
+│   ├── types/index.ts             # TypeScript 类型定义
+│   ├── composables/               # 组合式函数
+│   │   ├── useLottery.ts         # 抽奖逻辑 + 动画
+│   │   ├── useExcel.ts           # Excel 导入导出
+│   │   ├── useAudio.ts           # Web Audio 音效合成
+│   │   ├── useLargeStorage.ts    # IndexedDB 降级存储
+│   │   └── useConstants.ts       # 常量 + 标题工具
+│   ├── components/                # 通用组件
+│   │   ├── ParticipantImport.vue  # Excel 导入
+│   │   ├── LotteryMachine.vue     # 抽奖转盘
+│   │   ├── PrizeConfig.vue        # 奖品配置
+│   │   └── WinnerList.vue        # 获奖名单
+│   ├── views/                     # 页面
+│   │   ├── EntryPage.vue         # / 入口页
+│   │   ├── LotteryPage.vue       # /lottery 抽奖页
+│   │   ├── AdminPage.vue         # /admin 管理页
+│   │   └── WinnersPage.vue       # /winners 获奖公示页
+│   └── styles/
+│       ├── variables.scss         # CSS 变量（主题）
+│       └── global.scss            # 全局样式
+├── .github/workflows/deploy.yml   # CI/CD 自动部署
+├── deploy.cjs                     # 本地发布脚本
+├── vite.config.ts                 # Vite 配置
+├── vitest.config.ts               # Vitest 配置
+├── playwright.config.ts           # Playwright 配置
+└── tests/                         # 测试文件
+    ├── unit/                      # 单元测试
+    └── e2e/                       # E2E 测试
 ```
 
 ## Excel 文件格式
@@ -111,7 +131,50 @@ lottery-system/
 | 张三 | 13800138000 | 技术部 |
 | 李四 | 13900139000 | 市场部 |
 
-支持多种列名变体（姓名/Name/名称、手机/Mobile/电话 等）
+支持多种列名变体（姓名/Name/名称、手机/Mobile/电话 等）。
+
+## 测试
+
+本项目使用 Vitest 进行单元测试，Playwright 进行 E2E 端到端测试。
+
+### 测试概览
+
+| 指标 | 数值 |
+|------|------|
+| 测试用例总数 | 78 |
+| 通过 | 78 |
+| 失败 | 0 |
+| 单元测试 | 23 |
+| E2E 测试 | 55 |
+
+### 运行测试
+
+```bash
+# 单元测试
+npm run test:unit
+
+# E2E 测试（需先启动 dev server）
+npm run dev         # 终端 1：启动开发服务器
+npm run test:e2e   # 终端 2：运行 E2E 测试
+
+# 全部测试
+npm test
+```
+
+### 覆盖的模块
+
+| 模块 | 文件 | 测试类型 |
+|------|------|---------|
+| 抽奖逻辑 | `src/composables/useLottery.ts` | 单元测试 |
+| Excel 解析 | `src/composables/useExcel.ts` | 单元测试 |
+| 奖品常量 | `src/composables/useConstants.ts` | 单元测试 |
+| 状态存储 | `src/stores/lottery.ts` | E2E 测试 |
+| 入口页面 | `src/views/EntryPage.vue` | E2E 测试 |
+| 管理后台 | `src/views/AdminPage.vue` | E2E 测试 |
+| 抽奖页面 | `src/views/LotteryPage.vue` | E2E 测试 |
+| 中奖公示 | `src/views/WinnersPage.vue` | E2E 测试 |
+
+详细测试报告请查看 [TEST_REPORT.md](./TEST_REPORT.md)。
 
 ## 自动化部署流程
 

@@ -6,24 +6,31 @@
   "scripts": {
     "dev": "vite --host",
     "build": "vue-tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:unit": "vitest run --reporter=verbose",
+    "test:e2e": "playwright test",
+    "test:all": "vitest run && playwright test"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
     "element-plus": "^2.13.7",
-    "playwright": "^1.59.1",
     "sass": "^1.99.0",
     "vue": "^3.5.32",
     "vue-router": "^5.0.6",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@types/node": "^24.12.2",
     "@types/xlsx": "^0.0.35",
     "@vitejs/plugin-vue": "^6.0.6",
+    "@vue/test-utils": "^2.4.10",
     "@vue/tsconfig": "^0.9.1",
+    "jsdom": "^27.0.1",
     "typescript": "~6.0.2",
     "vite": "^8.0.10",
+    "vitest": "^3.2.4",
     "vue-tsc": "^3.2.7"
   }
 }

@@ -86,15 +86,7 @@
                 class="winner-card"
                 :style="{ '--level-icon': getLevelColor(winner.prize.level).iconColor }"
               >
-                <div class="winner-avatar" :style="getAvatarStyle(winner.prize.level)">
-                  {{ getInitials(winner.participant.name) }}
-                </div>
-                <div class="winner-info">
-                  <div class="winner-name">{{ winner.participant.name }}</div>
-                  <div class="winner-dept" v-if="winner.participant.department">
-                    {{ winner.participant.department }}
-                  </div>
-                </div>
+                <div class="winner-sn">{{ winner.participant.machineCode || winner.participant.name || '无编号' }}</div>
                 <div class="winner-time">
                   {{ formatTime(winner.winTime) }}
                 </div>
@@ -201,11 +193,6 @@ onUnmounted(() => {
   Object.keys(autoPlayTimers.value).forEach(id => stopAutoPlay(id))
 })
 
-function getInitials(name: string): string {
-  if (!name) return '?'
-  return name.charAt(0).toUpperCase()
-}
-
 function formatTime(date: Date): string {
   const d = new Date(date)
   return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`
@@ -217,11 +204,6 @@ function getGroupStyle(level: number) {
     '--level-gradient': c.gradient,
     '--level-icon': c.iconColor,
   }
-}
-
-function getAvatarStyle(level: number) {
-  const c = getLevelColor(level)
-  return { background: c.gradient }
 }
 
 function getRankStyle(level: number) {
@@ -463,39 +445,16 @@ function handleExport() {
   }
 }
 
-.winner-avatar {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  font-size: 18px;
-  font-weight: 700;
-  color: #fff;
-  flex-shrink: 0;
-}
-
-.winner-info {
+.winner-sn {
   flex: 1;
   min-width: 0;
-
-  .winner-name {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .winner-dept {
-    font-size: 12px;
-    color: var(--text-muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .winner-time {

@@ -52,7 +52,7 @@
         <div class="section-toolbar">
           <el-input
             v-model="searchKeyword"
-            placeholder="搜索机器SN、企业名称或区域..."
+            placeholder="搜索机器SN..."
             prefix-icon="Search"
             clearable
             style="width: 280px"
@@ -72,16 +72,6 @@
           <el-table-column prop="machineCode" label="机器SN号" width="180">
             <template #default="{ row }">
               <span class="machine-code-cell">{{ row.machineCode || row.name }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="companyName" label="代理商公司名" min-width="280" show-overflow-tooltip>
-            <template #default="{ row }">
-              {{ row.companyName || '-' }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="region" label="所属区域" width="140">
-            <template #default="{ row }">
-              {{ row.region || '-' }}
             </template>
           </el-table-column>
           <el-table-column label="操作" width="80" fixed="right">
@@ -127,12 +117,8 @@ const errors = ref<string[]>([])
 const filteredParticipants = computed(() => {
   if (!searchKeyword.value) return props.participants
   const keyword = searchKeyword.value.toLowerCase()
-  return props.participants.filter(
-    p =>
-      p.machineCode?.toLowerCase().includes(keyword) ||
-      p.companyName?.toLowerCase().includes(keyword) ||
-      p.region?.toLowerCase().includes(keyword) ||
-      p.name?.toLowerCase().includes(keyword)
+  return props.participants.filter(p =>
+    (p.machineCode || p.name || '').toLowerCase().includes(keyword)
   )
 })
 

@@ -239,12 +239,7 @@
                     >
                       <div class="member-sn">
                         <span class="sn-label">机器SN</span>
-                        <span class="sn-value">{{ winner.participant.machineCode }}</span>
-                      </div>
-                      <div class="member-company">{{ winner.participant.companyName }}</div>
-                      <div class="member-region">
-                        <el-icon><Location /></el-icon>
-                        {{ winner.participant.region }}
+                        <span class="sn-value">{{ winner.participant.machineCode || winner.participant.name || '无编号' }}</span>
                       </div>
                     </div>
                   </div>
@@ -303,12 +298,7 @@
                     ></span>
                   </div>
                 </div>
-                <div class="rwc-sn">{{ winner.participant.machineCode }}</div>
-                <div class="rwc-company">{{ winner.participant.companyName }}</div>
-                <div class="rwc-region">
-                  <el-icon><Location /></el-icon>
-                  {{ winner.participant.region }}
-                </div>
+                <div class="rwc-sn">{{ winner.participant.machineCode || winner.participant.name || '无编号' }}</div>
                 <div v-if="roundWinners[0]?.prize?.items && roundWinners[0]?.prize?.items.length > 0" class="rwc-items">
                   <span v-for="item in roundWinners[0]?.prize?.items" :key="item.id" class="rwc-item-tag">{{ item.name }}</span>
                 </div>
@@ -386,9 +376,7 @@
                     </div>
                   </div>
                   <div class="cg-info">
-                    <div class="cg-sn">{{ winner.participant.machineCode }}</div>
-                    <div class="cg-company">{{ winner.participant.companyName }}</div>
-                    <div class="cg-region">{{ winner.participant.region }}</div>
+                    <div class="cg-sn">{{ winner.participant.machineCode || winner.participant.name || '无编号' }}</div>
                     <div v-if="group.prize.items && group.prize.items.length > 0" class="cg-items">
                       <span v-for="item in group.prize.items" :key="item.id" class="cg-item-tag">{{ item.name }}</span>
                     </div>
@@ -425,7 +413,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Setting, Trophy, Medal, CircleCheck, User, Location, Present, Download, FullScreen, Close, ArrowRight } from '@element-plus/icons-vue'
+import { Setting, Trophy, Medal, CircleCheck, User, Present, Download, FullScreen, Close, ArrowRight } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import LotteryMachine from '../components/LotteryMachine.vue'
 import { useLotteryStore } from '../stores/lottery'
@@ -1387,26 +1375,6 @@ function exportWinners() {
       letter-spacing: 1px;
     }
   }
-
-  .member-company {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-primary);
-    line-height: 1.4;
-  }
-
-  .member-region {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.6);
-
-    .el-icon {
-      font-size: 12px;
-      color: rgba(255, 215, 0, 0.7);
-    }
-  }
 }
 
 @keyframes fadeIn {
@@ -1552,26 +1520,6 @@ function exportWinners() {
     font-weight: 700;
     font-family: 'Consolas', 'Monaco', monospace;
     color: var(--gold-color);
-  }
-
-  .rwc-company {
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.85);
-    text-align: center;
-    line-height: 1.3;
-    word-break: break-all;
-  }
-
-  .rwc-region {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.45);
-
-    .el-icon {
-      color: rgba(255, 215, 0, 0.5);
-    }
   }
 
   .rwc-items {
@@ -1772,21 +1720,6 @@ function exportWinners() {
       color: var(--text-primary);
       margin-bottom: 4px;
     }
-
-    .cg-company {
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.7);
-      margin-bottom: 2px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .cg-region {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
     .cg-items {
       display: flex;
       flex-wrap: wrap;

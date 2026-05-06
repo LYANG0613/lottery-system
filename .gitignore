@@ -12,5 +12,9 @@ dist
 *.sw?
 .cursor/
 dist.zip
-*.cjs
+
+# Test artifacts
+.playwright-cli/
+playwright-report/
+test-results/
 

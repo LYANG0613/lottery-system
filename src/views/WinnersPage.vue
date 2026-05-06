@@ -111,11 +111,6 @@
                 <span class="winner-sn-label">编号</span>
                 <div class="winner-sn">{{ winner.participant.machineCode || winner.participant.name || '无编号' }}</div>
               </div>
-              <div class="winner-company">{{ winner.participant.companyName }}</div>
-              <div class="winner-region">
-                <el-icon><Location /></el-icon>
-                {{ winner.participant.region }}
-              </div>
             </div>
           </div>
         </div>
@@ -127,7 +122,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Trophy, Location, FullScreen, Close, HomeFilled, ArrowLeft } from '@element-plus/icons-vue'
+import { Trophy, FullScreen, Close, HomeFilled, ArrowLeft } from '@element-plus/icons-vue'
 import { useLotteryStore } from '../stores/lottery'
 import { getLevelLabel, getLevelColor, updatePageTitle } from '../composables/useConstants'
 import type { Winner, Prize } from '../types'
@@ -636,25 +631,6 @@ function getItemTagStyle(level: number) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.winner-company {
-  font-size: 14px;
-  color: var(--text-primary);
-  font-weight: 500;
-  margin-bottom: 6px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.winner-region {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--text-muted);
 }
 
 // Responsive
