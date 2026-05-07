@@ -33,7 +33,7 @@ export interface BackupData {
 function defaultState(): LotteryState {
   return {
     eventName: '',
-    companyLogo: import.meta.env.BASE_URL + 'logo.svg',
+    companyLogo: '',
     drawOrder: DEFAULT_DRAW_ORDER,
     participants: [],
     prizes: [],
@@ -310,7 +310,7 @@ export function useLotteryStore() {
     state.participants = []
     state.prizes = []
     state.winners = []
-    state.companyLogo = import.meta.env.BASE_URL + 'logo.svg'
+    state.companyLogo = ''
     state.drawOrder = DEFAULT_DRAW_ORDER
     clearBackup()
     localStorage.removeItem(IDB_METADATA_KEY)

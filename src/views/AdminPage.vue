@@ -4,16 +4,9 @@
     <header class="page-header">
       <div class="header-content">
         <div class="logo-section">
-          <div class="company-logo">
+          <div v-if="store.state.companyLogo" class="company-logo">
             <img
-              v-if="store.state.companyLogo"
               :src="store.state.companyLogo"
-              alt="logo"
-              class="logo-img"
-            />
-            <img
-              v-else
-              :src="defaultLogo"
               alt="logo"
               class="logo-img"
             />
@@ -337,8 +330,6 @@ import type { LotteryDrawOrder, Participant, Prize, PrizeItem } from '../types'
 
 const router = useRouter()
 const store = useLotteryStore()
-const defaultLogo = import.meta.env.BASE_URL + 'image.png'
-
 // 页面标题
 updatePageTitle(store.state.eventName)
 
@@ -632,12 +623,6 @@ function goToLottery() {
     height: 100%;
     object-fit: contain;
     image-rendering: -webkit-optimize-contrast;
-  }
-
-  .logo-placeholder {
-    font-size: 16px;
-    font-weight: 700;
-    color: #fff;
   }
 }
 

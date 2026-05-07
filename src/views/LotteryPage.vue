@@ -10,21 +10,12 @@
       <div class="header-content">
         <!-- Logo区域 - 更醒目 -->
         <div class="logo-section">
-          <div class="company-logo">
+          <div v-if="store.state.companyLogo" class="company-logo">
             <img
-              v-if="store.state.companyLogo"
               :src="store.state.companyLogo"
               alt="logo"
               class="logo-img"
             />
-            <img
-              v-else
-              :src="defaultLogo"
-              alt="logo"
-              class="logo-img"
-              @error="handleLogoError"
-            />
-            <span v-if="!store.state.companyLogo && logoError" class="logo-placeholder">L</span>
           </div>
           <div class="title-area">
             <h1 class="site-title">{{ store.state.eventName || '企业年度盛典' }}</h1>
@@ -420,8 +411,6 @@ import type { Prize, Winner } from '../types'
 const router = useRouter()
 const store = useLotteryStore()
 const MAX_WINNERS_PER_DRAW = 10
-const logoError = ref(false)
-const defaultLogo = import.meta.env.BASE_URL + 'image.png'
 
 // 每轮结束后全屏展示
 const roundOverlayVisible = ref(false)
@@ -633,9 +622,6 @@ const roundContinueLabel = computed(() => {
   return '继续下一轮'
 })
 
-function handleLogoError() {
-  logoError.value = true
-}
 
 function goToAdmin() {
   router.push('/admin')
@@ -798,12 +784,6 @@ function exportWinners() {
     height: 100%;
     object-fit: contain;
     image-rendering: -webkit-optimize-contrast;
-  }
-
-  .logo-placeholder {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--gold-color);
   }
 }
 
