@@ -50,7 +50,9 @@
             <div v-if="currentPrize.items && currentPrize.items.length > 0" class="prize-items">
               <span v-for="item in currentPrize.items" :key="item.id" class="item-tag">{{ item.name }}</span>
             </div>
-            <span class="prize-count">第 {{ drawIndex }} 轮 · 共 {{ currentPrize.count }} 名</span>
+            <span class="prize-count">
+              第 {{ drawIndex }} 轮 · 第 {{ batchIndex }}/{{ batchTotal }} 批 · 本批 {{ batchSize }} 名 / 共 {{ currentPrize.count }} 名
+            </span>
           </div>
         </div>
 
@@ -174,6 +176,9 @@ interface Props {
   participants: Participant[]
   currentPrize: Prize | null
   drawIndex: number
+  batchIndex?: number
+  batchTotal?: number
+  batchSize?: number
   isRunning: boolean
   displayName: string
   winnerIds: string[]
@@ -187,6 +192,9 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  batchIndex: 1,
+  batchTotal: 1,
+  batchSize: 0,
   visibleCodes: () => [],
   isAnimating: false,
   rollOffset: 0

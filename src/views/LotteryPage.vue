@@ -81,7 +81,7 @@
                 </div>
               </div>
               <div class="prize-level-badge">{{ getLevelLabel(currentPrize.level) }}</div>
-              <div class="prize-round-badge">第 {{ currentRoundIndex }} 轮</div>
+              <div class="prize-round-badge">第 {{ currentRoundIndex }} 轮 · 第 {{ currentBatchIndex }}/{{ currentBatchTotal }} 批</div>
               <div class="prize-name">{{ currentPrize.name }}</div>
               <div v-if="currentPrize.items && currentPrize.items.length > 0" class="prize-items">
                 <span v-for="item in currentPrize.items" :key="item.id" class="prize-item-tag">{{ item.name }}</span>
@@ -90,7 +90,7 @@
                 <el-tag type="warning" size="large">
                   {{ currentPrize.count }} 名
                 </el-tag>
-                <span class="remaining">剩余 {{ remainingCount }} 个名额</span>
+                <span class="remaining">剩余 {{ remainingCount }} 个名额 · 本批 {{ currentBatchSize }} 名</span>
               </div>
               <div class="prize-progress">
                 <div
@@ -189,7 +189,10 @@
           <LotteryMachine
             :participants="store.state.participants"
             :current-prize="currentPrize"
-            :draw-index="currentDrawIndex"
+            :draw-index="currentRoundIndex"
+            :batch-index="currentBatchIndex"
+            :batch-total="currentBatchTotal"
+            :batch-size="currentBatchSize"
             :is-running="isRunning"
             :display-name="displayName"
             :winner-ids="winnerIds"
@@ -259,7 +262,7 @@
               </svg>
             </div>
             <h1 class="round-title">{{ roundWinners[0] ? getLevelLabel(roundWinners[0].prize.level) : '恭喜' }}</h1>
-            <p class="round-subtitle">{{ (roundWinners[0]?.prize?.name || '奖品') }} · {{ roundWinners.length }} 位幸运儿</p>
+            <p class="round-subtitle">{{ (roundWinners[0]?.prize?.name || '奖品') }} · 本批 {{ roundWinners.length }} 位幸运儿</p>
           </div>
 
           <div class="round-winners-scroll">
@@ -304,7 +307,7 @@
               查看公示大屏
             </el-button>
             <el-button v-else type="primary" size="large" @click="handleContinueToNextRound">
-              继续下一轮
+              {{ roundContinueLabel }}
               <el-icon><ArrowRight /></el-icon>
             </el-button>
           </div>
@@ -416,6 +419,7 @@ import type { Prize, Winner } from '../types'
 
 const router = useRouter()
 const store = useLotteryStore()
+const MAX_WINNERS_PER_DRAW = 10
 const logoError = ref(false)
 const defaultLogo = import.meta.env.BASE_URL + 'image.png'
 
@@ -533,15 +537,26 @@ watch(() => currentPrize.value, (prize) => {
   }
 }, { immediate: true })
 
-const currentDrawIndex = computed(() => {
-  if (!currentPrize.value) return 1
-  const wonCount = store.state.winners.filter(w => w.prize.id === currentPrize.value!.id).length
-  return wonCount + 1
-})
-
 const remainingCount = computed(() => {
   if (!currentPrize.value) return 0
   return store.getRemainingPrizeCount(currentPrize.value.id)
+})
+
+const currentPrizeWonCount = computed(() => {
+  if (!currentPrize.value) return 0
+  return store.state.winners.filter(w => w.prize.id === currentPrize.value!.id).length
+})
+
+const currentBatchSize = computed(() => Math.min(remainingCount.value, MAX_WINNERS_PER_DRAW))
+
+const currentBatchIndex = computed(() => {
+  if (!currentPrize.value) return 1
+  return Math.floor(currentPrizeWonCount.value / MAX_WINNERS_PER_DRAW) + 1
+})
+
+const currentBatchTotal = computed(() => {
+  if (!currentPrize.value) return 1
+  return Math.max(1, Math.ceil(currentPrize.value.count / MAX_WINNERS_PER_DRAW))
 })
 
 const currentRoundIndex = computed(() => {
@@ -612,6 +627,12 @@ function stopAutoPlay(prizeId: string) {
 
 const showCelebration = ref(false)
 
+const roundContinueLabel = computed(() => {
+  const prizeId = roundWinners.value[0]?.prize.id
+  if (prizeId && store.getRemainingPrizeCount(prizeId) > 0) return '继续下一批'
+  return '继续下一轮'
+})
+
 function handleLogoError() {
   logoError.value = true
 }
@@ -644,7 +665,7 @@ function handleStartLottery() {
   startLottery(
     store.state.participants,
     currentPrize.value,
-    remainingCount.value,
+    currentBatchSize.value,
     (winners: Winner[]) => {
       // onWinners 在最后一个 notifyWinner 之后才调用，此时 store 已完整
       capturedWinners = winners
@@ -652,7 +673,9 @@ function handleStartLottery() {
     () => {
       // 延迟 300ms 展示（finishLottery 仅在 notifyWinner 之后触发，store 已一致）
       setTimeout(() => {
-        roundWinners.value = capturedWinners.length > 0 ? capturedWinners : store.state.winners.filter(w => w.prize.id === thisPrize.id)
+        roundWinners.value = capturedWinners.length > 0
+          ? capturedWinners
+          : store.state.winners.filter(w => w.prize.id === thisPrize.id).slice(-currentBatchSize.value)
         isLastRound.value = store.state.prizes.every(p => store.getRemainingPrizeCount(p.id) === 0)
         roundOverlayVisible.value = true
       }, 300)

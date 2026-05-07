@@ -106,6 +106,10 @@ export function parseExcel(file: File): Promise<ExcelImportResult> {
         // 从表头下一行开始读取数据
         for (let index = headerRowIndex + 1; index < rawData.length; index++) {
           const row = rawData[index]
+          const rowNumber = index + 1
+          const isEmptyRow = !row || row.every((cell: any) => String(cell ?? '').trim() === '')
+          if (isEmptyRow) continue
+
           const rowObj: ExcelRow = {}
           headers.forEach((header, colIndex) => {
             rowObj[header] = row[colIndex]
@@ -116,7 +120,7 @@ export function parseExcel(file: File): Promise<ExcelImportResult> {
             : ''
 
           if (!machineCode) {
-            errors.push(`第${index + 2}行：缺少机器SN号`)
+            errors.push(`第${rowNumber}行：缺少机器SN号`)
             continue
           }
 
@@ -142,7 +146,7 @@ export function parseExcel(file: File): Promise<ExcelImportResult> {
           }
 
           if (seenMachineCodes.has(machineCode)) {
-            errors.push(`第${index + 2}行：重复机器SN号 "${machineCode}"`)
+            errors.push(`第${rowNumber}行：重复机器SN号 "${machineCode}"`)
             continue
           }
           seenMachineCodes.add(machineCode)

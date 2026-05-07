@@ -100,6 +100,25 @@ describe('useLottery 核心逻辑', () => {
     expect(runId).toBe(1)
   })
 
+  it('奖项按每批最多10人拆分', () => {
+    const maxBatchSize = 10
+    const splitBatches = (count: number) => {
+      const batches: number[] = []
+      let remaining = count
+      while (remaining > 0) {
+        const batch = Math.min(remaining, maxBatchSize)
+        batches.push(batch)
+        remaining -= batch
+      }
+      return batches
+    }
+
+    expect(splitBatches(8)).toEqual([8])
+    expect(splitBatches(10)).toEqual([10])
+    expect(splitBatches(11)).toEqual([10, 1])
+    expect(splitBatches(25)).toEqual([10, 10, 5])
+  })
+
   it('phase 进度正确管理多轮抽奖', () => {
     const count = 5
     let phase = 0
