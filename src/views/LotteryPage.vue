@@ -556,11 +556,7 @@ interface WinnerGroup {
   winners: Winner[]
 }
 
-const recentWinners = computed(() =>
-  [...store.state.winners].sort(
-    (a, b) => new Date(b.winTime).getTime() - new Date(a.winTime).getTime()
-  )
-)
+const recentWinners = computed(() => [...store.state.winners].reverse())
 
 const groupedWinners = computed<WinnerGroup[]>(() => {
   const groups: Record<string, WinnerGroup> = {}
