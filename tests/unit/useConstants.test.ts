@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { sortPrizesByDrawOrder } from '../../src/composables/useConstants'
 
 describe('useConstants - 奖品常量', () => {
   it('getLevelLabel 返回正确的等级标签', () => {
@@ -68,6 +69,17 @@ describe('useConstants - 奖品常量', () => {
     }
     const colors = new Set(Object.values(LEVEL_COLORS).map(c => c.gradient))
     expect(colors.size).toBe(6)
+  })
+
+  it('sortPrizesByDrawOrder 支持高到低和低到高', () => {
+    const prizes = [
+      { id: 'third', name: '三等奖', level: 4, count: 1 },
+      { id: 'first', name: '一等奖', level: 2, count: 1 },
+      { id: 'second', name: '二等奖', level: 3, count: 1 }
+    ]
+
+    expect(sortPrizesByDrawOrder(prizes, 'high-to-low').map(p => p.id)).toEqual(['first', 'second', 'third'])
+    expect(sortPrizesByDrawOrder(prizes, 'low-to-high').map(p => p.id)).toEqual(['third', 'second', 'first'])
   })
 
   it('LEVEL_LABELS 包含所有等级', () => {

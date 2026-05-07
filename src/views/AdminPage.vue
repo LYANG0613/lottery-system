@@ -64,6 +64,12 @@
                       @blur="saveSettings"
                     />
                   </el-form-item>
+                  <el-form-item label="抽奖顺序">
+                    <el-radio-group v-model="settingsForm.drawOrder" @change="saveSettings">
+                      <el-radio-button label="high-to-low">从高到低</el-radio-button>
+                      <el-radio-button label="low-to-high">从低到高</el-radio-button>
+                    </el-radio-group>
+                  </el-form-item>
                   <div class="preview-logo" v-if="settingsForm.companyLogo">
                     <img :src="settingsForm.companyLogo" alt="logo预览" />
                   </div>
@@ -92,7 +98,7 @@
                 </div>
                 <div class="prize-list">
                   <div
-                    v-for="prize in store.state.prizes"
+                    v-for="prize in orderedPrizes"
                     :key="prize.id"
                     class="prize-item"
                   >
@@ -327,7 +333,7 @@ import WinnerList from '../components/WinnerList.vue'
 import { useLotteryStore } from '../stores/lottery'
 import { exportToExcel } from '../composables/useExcel'
 import { getLevelLabel, updatePageTitle } from '../composables/useConstants'
-import type { Participant, Prize, PrizeItem } from '../types'
+import type { LotteryDrawOrder, Participant, Prize, PrizeItem } from '../types'
 
 const router = useRouter()
 const store = useLotteryStore()
@@ -344,7 +350,8 @@ const expandedSections = reactive({
 
 const settingsForm = reactive({
   eventName: '',
-  companyLogo: ''
+  companyLogo: '',
+  drawOrder: 'high-to-low' as LotteryDrawOrder
 })
 
 const prizeForm = reactive({
@@ -367,6 +374,8 @@ function addPrizeItem() {
 function removePrizeItem(index: number) {
   prizeForm.items.splice(index, 1)
 }
+
+const orderedPrizes = computed(() => store.getOrderedPrizes())
 
 // 备份状态
 const lastBackup = computed(() => store.getBackup())
@@ -434,6 +443,7 @@ async function handleRestore() {
       ElMessage.success('数据已恢复')
       settingsForm.eventName = store.state.eventName
       settingsForm.companyLogo = store.state.companyLogo
+      settingsForm.drawOrder = store.state.drawOrder
     } else {
       ElMessage.warning('没有可用的备份')
     }
@@ -445,6 +455,7 @@ async function handleRestore() {
 onMounted(() => {
   settingsForm.eventName = store.state.eventName
   settingsForm.companyLogo = store.state.companyLogo
+  settingsForm.drawOrder = store.state.drawOrder
 })
 
 function toggleSection(section: keyof typeof expandedSections) {
@@ -454,6 +465,7 @@ function toggleSection(section: keyof typeof expandedSections) {
 function saveSettings() {
   store.setEventName(settingsForm.eventName)
   store.setCompanyLogo(settingsForm.companyLogo)
+  store.setDrawOrder(settingsForm.drawOrder)
   updatePageTitle(settingsForm.eventName)
   ElMessage.success('设置已保存')
 }
@@ -558,6 +570,7 @@ async function handleResetAll() {
     store.clearAll()
     settingsForm.eventName = ''
     settingsForm.companyLogo = ''
+    settingsForm.drawOrder = store.state.drawOrder
     ElMessage.success('所有数据已重置')
   } catch {
     // 用户取消

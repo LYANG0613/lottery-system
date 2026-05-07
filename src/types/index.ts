@@ -28,6 +28,8 @@ export interface Prize {
   items?: PrizeItem[] // 奖项包含的多个物品
 }
 
+export type LotteryDrawOrder = 'high-to-low' | 'low-to-high'
+
 export interface Winner {
   id: string
   participant: Participant

@@ -1,3 +1,5 @@
+import type { LotteryDrawOrder, Prize } from '../types'
+
 /** 奖品等级标签映射 */
 const LEVEL_LABELS: Record<number, string> = {
   1: '特等奖',
@@ -16,6 +18,34 @@ const LEVEL_COLORS: Record<number, { gradient: string; iconColor: string; textCo
   4: { gradient: 'linear-gradient(135deg, #CD7F32, #92400E)', iconColor: '#CD7F32', textColor: '#fff' },
   5: { gradient: 'linear-gradient(135deg, #06B6D4, #0E7490)', iconColor: '#06B6D4', textColor: '#fff' },
   6: { gradient: 'linear-gradient(135deg, #10B981, #059669)', iconColor: '#10B981', textColor: '#fff' },
+}
+
+export const DEFAULT_DRAW_ORDER: LotteryDrawOrder = 'high-to-low'
+
+export const DRAW_ORDER_LABELS: Record<LotteryDrawOrder, string> = {
+  'high-to-low': '从高到低',
+  'low-to-high': '从低到高'
+}
+
+export function normalizeDrawOrder(order: unknown): LotteryDrawOrder {
+  return order === 'low-to-high' ? 'low-to-high' : DEFAULT_DRAW_ORDER
+}
+
+export function comparePrizesByDrawOrder(
+  a: Prize,
+  b: Prize,
+  order: LotteryDrawOrder = DEFAULT_DRAW_ORDER
+): number {
+  const levelDiff = order === 'low-to-high' ? b.level - a.level : a.level - b.level
+  if (levelDiff !== 0) return levelDiff
+  return a.name.localeCompare(b.name, 'zh-CN') || a.id.localeCompare(b.id)
+}
+
+export function sortPrizesByDrawOrder(
+  prizes: Prize[],
+  order: LotteryDrawOrder = DEFAULT_DRAW_ORDER
+): Prize[] {
+  return [...prizes].sort((a, b) => comparePrizesByDrawOrder(a, b, order))
 }
 
 export function getLevelLabel(level: number): string {

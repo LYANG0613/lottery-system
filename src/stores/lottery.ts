@@ -1,10 +1,15 @@
 import { watch, ref, reactive } from 'vue'
-import type { Participant, Prize, Winner } from '../types'
+import type { LotteryDrawOrder, Participant, Prize, Winner } from '../types'
 import {
   setStateData,
   getStateData,
   clearStateData
 } from '../composables/useLargeStorage'
+import {
+  DEFAULT_DRAW_ORDER,
+  normalizeDrawOrder,
+  sortPrizesByDrawOrder
+} from '../composables/useConstants'
 
 const STORAGE_KEY = 'lottery-system-data'
 const BACKUP_KEY = 'lottery-system-backup'
@@ -13,6 +18,7 @@ const IDB_METADATA_KEY = 'idb-saved'
 export interface LotteryState {
   eventName: string
   companyLogo: string
+  drawOrder: LotteryDrawOrder
   participants: Participant[]
   prizes: Prize[]
   winners: Winner[]
@@ -28,10 +34,28 @@ function defaultState(): LotteryState {
   return {
     eventName: '',
     companyLogo: import.meta.env.BASE_URL + 'logo.svg',
+    drawOrder: DEFAULT_DRAW_ORDER,
     participants: [],
     prizes: [],
     winners: []
   }
+}
+
+function normalizeLotteryState(data?: Partial<LotteryState>): LotteryState {
+  const normalized: LotteryState = {
+    ...defaultState(),
+    ...data,
+    participants: data?.participants ?? [],
+    prizes: data?.prizes ?? [],
+    winners: data?.winners ?? []
+  }
+  normalized.drawOrder = normalizeDrawOrder(normalized.drawOrder)
+  normalized.prizes = sortPrizesByDrawOrder(normalized.prizes, normalized.drawOrder)
+  normalized.winners = normalized.winners.map((w: Winner) => ({
+    ...w,
+    winTime: new Date(w.winTime)
+  }))
+  return normalized
 }
 
 // 同步加载：优先从 localStorage 读取（同步，保证初始化时就拿到数据）
@@ -39,14 +63,8 @@ function loadFromStorageSync(): LotteryState {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
-      const data = JSON.parse(saved) as LotteryState
-      if (data.winners) {
-        data.winners = data.winners.map((w: Winner) => ({
-          ...w,
-          winTime: new Date(w.winTime)
-        }))
-      }
-      return data
+      const data = JSON.parse(saved) as Partial<LotteryState>
+      return normalizeLotteryState(data)
     }
   } catch (e) {
     console.warn('Failed to load from storage:', e)
@@ -74,14 +92,8 @@ async function loadFromIndexedDB(): Promise<void> {
   try {
     const idbData = await getStateData()
     if (idbData) {
-      const data = JSON.parse(idbData) as LotteryState
-      if (data.winners) {
-        data.winners = data.winners.map((w: Winner) => ({
-          ...w,
-          winTime: new Date(w.winTime)
-        }))
-      }
-      Object.assign(state, data)
+      const data = JSON.parse(idbData) as Partial<LotteryState>
+      Object.assign(state, normalizeLotteryState(data))
     }
   } catch (e) {
     console.warn('Failed to load from IndexedDB:', e)
@@ -171,7 +183,7 @@ function clearBackup() {
 function restoreFromBackup(): boolean {
   const backup = getBackup()
   if (backup) {
-    Object.assign(state, backup.state)
+    Object.assign(state, normalizeLotteryState(backup.state))
     hasUnsavedChanges.value = false
     return true
   }
@@ -234,6 +246,15 @@ export function useLotteryStore() {
     state.companyLogo = logo
   }
 
+  function setDrawOrder(order: LotteryDrawOrder) {
+    state.drawOrder = normalizeDrawOrder(order)
+    state.prizes = sortPrizesByDrawOrder(state.prizes, state.drawOrder)
+  }
+
+  function getOrderedPrizes(order: LotteryDrawOrder = state.drawOrder): Prize[] {
+    return sortPrizesByDrawOrder(state.prizes, normalizeDrawOrder(order))
+  }
+
   function setParticipants(participants: Participant[]) {
     state.participants = participants
   }
@@ -253,11 +274,11 @@ export function useLotteryStore() {
   }
 
   function setPrizes(prizes: Prize[]) {
-    state.prizes = prizes
+    state.prizes = sortPrizesByDrawOrder(prizes, state.drawOrder)
   }
 
   function addPrize(prize: Prize) {
-    state.prizes = [...state.prizes, prize].sort((a, b) => a.level - b.level)
+    state.prizes = sortPrizesByDrawOrder([...state.prizes, prize], state.drawOrder)
   }
 
   function updatePrize(prize: Prize) {
@@ -265,7 +286,7 @@ export function useLotteryStore() {
     if (index !== -1) {
       const updated = [...state.prizes]
       updated[index] = prize
-      state.prizes = updated.sort((a, b) => a.level - b.level)
+      state.prizes = sortPrizesByDrawOrder(updated, state.drawOrder)
     }
   }
 
@@ -290,6 +311,7 @@ export function useLotteryStore() {
     state.prizes = []
     state.winners = []
     state.companyLogo = import.meta.env.BASE_URL + 'logo.svg'
+    state.drawOrder = DEFAULT_DRAW_ORDER
     clearBackup()
     localStorage.removeItem(IDB_METADATA_KEY)
     await clearStateData()
@@ -308,7 +330,7 @@ export function useLotteryStore() {
   }
 
   function getNextAvailablePrize(): Prize | null {
-    return state.prizes.find(p => getRemainingPrizeCount(p.id) > 0) || null
+    return getOrderedPrizes().find(p => getRemainingPrizeCount(p.id) > 0) || null
   }
 
   return {
@@ -321,6 +343,8 @@ export function useLotteryStore() {
     clearBackup,
     setEventName,
     setCompanyLogo,
+    setDrawOrder,
+    getOrderedPrizes,
     setParticipants,
     addParticipants,
     removeParticipant,

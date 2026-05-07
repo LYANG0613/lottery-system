@@ -120,7 +120,7 @@
             </div>
             <div class="prize-list">
               <div
-                v-for="prize in store.state.prizes"
+                v-for="prize in orderedPrizes"
                 :key="prize.id"
                 class="prize-item"
                 :class="{
@@ -221,27 +221,19 @@
                 <p>暂无中奖名单</p>
                 <span class="hint">准备好你的运气了吗?</span>
               </div>
-              <div v-else class="winners-list">
+              <div v-else class="winners-list winners-list--recent">
                 <div
-                  v-for="group in groupedWinners"
-                  :key="group.prize.id"
-                  class="winner-group"
+                  v-for="winner in recentWinners"
+                  :key="winner.id"
+                  class="member-card recent-winner-card"
                 >
-                  <div class="group-title">
-                    <span class="group-level">{{ getLevelLabel(group.prize.level) }}</span>
-                    <span class="group-name">{{ group.prize.name }}</span>
+                  <div class="member-prize">
+                    <span class="group-level">{{ getLevelLabel(winner.prize.level) }}</span>
+                    <span class="group-name">{{ winner.prize.name }}</span>
                   </div>
-                  <div class="group-members">
-                    <div
-                      v-for="winner in group.winners"
-                      :key="winner.id"
-                      class="member-card"
-                    >
-                      <div class="member-sn">
-                        <span class="sn-label">机器SN</span>
-                        <span class="sn-value">{{ winner.participant.machineCode || winner.participant.name || '无编号' }}</span>
-                      </div>
-                    </div>
+                  <div class="member-sn">
+                    <span class="sn-label">机器SN</span>
+                    <span class="sn-value">{{ winner.participant.machineCode || winner.participant.name || '无编号' }}</span>
                   </div>
                 </div>
               </div>
@@ -527,6 +519,7 @@ watch(() => store.state.eventName, (name) => {
 })
 
 const winnerIds = computed(() => store.state.winners.map(w => w.participant.id))
+const orderedPrizes = computed(() => store.getOrderedPrizes())
 
 // 当前奖品
 const currentPrize = computed(() => {
@@ -551,11 +544,10 @@ const remainingCount = computed(() => {
   return store.getRemainingPrizeCount(currentPrize.value.id)
 })
 
-// 当前第几轮：已完成更低 level 的奖品数 + 1
 const currentRoundIndex = computed(() => {
   if (!currentPrize.value) return 1
-  const lowerPrizes = store.state.prizes.filter(p => p.level < currentPrize.value!.level)
-  return lowerPrizes.length + 1
+  const index = orderedPrizes.value.findIndex(p => p.id === currentPrize.value!.id)
+  return index === -1 ? 1 : index + 1
 })
 
 // 分组中奖名单
@@ -563,6 +555,12 @@ interface WinnerGroup {
   prize: Prize
   winners: Winner[]
 }
+
+const recentWinners = computed(() =>
+  [...store.state.winners].sort(
+    (a, b) => new Date(b.winTime).getTime() - new Date(a.winTime).getTime()
+  )
+)
 
 const groupedWinners = computed<WinnerGroup[]>(() => {
   const groups: Record<string, WinnerGroup> = {}
@@ -573,7 +571,14 @@ const groupedWinners = computed<WinnerGroup[]>(() => {
     }
     groups[prizeId].winners.push(winner)
   }
-  return Object.values(groups).sort((a, b) => a.prize.level - b.prize.level)
+
+  const prizeOrder = new Map(orderedPrizes.value.map((prize, index) => [prize.id, index]))
+  return Object.values(groups).sort((a, b) => {
+    const aOrder = prizeOrder.get(a.prize.id) ?? Number.MAX_SAFE_INTEGER
+    const bOrder = prizeOrder.get(b.prize.id) ?? Number.MAX_SAFE_INTEGER
+    if (aOrder !== bOrder) return aOrder - bOrder
+    return a.prize.level - b.prize.level
+  })
 })
 
 function getRemainingPrizeCount(prizeId: string): number {
@@ -1353,6 +1358,34 @@ function exportWinners() {
     transform: translateX(4px);
     border-color: rgba(255, 215, 0, 0.4);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  .member-prize {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+    .group-level {
+      padding: 2px 8px;
+      background: linear-gradient(135deg, var(--gold-color), var(--gold-dark));
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #1a1a2e;
+      flex-shrink: 0;
+    }
+
+    .group-name {
+      min-width: 0;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 
   .member-sn {
