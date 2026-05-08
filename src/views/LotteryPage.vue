@@ -1397,14 +1397,21 @@ function exportWinners() {
       color: rgba(255, 215, 0, 0.7);
       text-transform: uppercase;
       letter-spacing: 1px;
+      flex-shrink: 0;
     }
 
     .sn-value {
       font-size: 15px;
       font-weight: 700;
+      min-width: 0;
+      flex: 1;
       font-family: 'Consolas', 'Monaco', monospace;
       color: var(--gold-color);
       letter-spacing: 1px;
+      line-height: 1.3;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-all;
     }
   }
 }
@@ -1552,6 +1559,11 @@ function exportWinners() {
     font-weight: 700;
     font-family: 'Consolas', 'Monaco', monospace;
     color: var(--gold-color);
+    max-width: 100%;
+    line-height: 1.25;
+    text-align: center;
+    overflow-wrap: anywhere;
+    word-break: break-all;
   }
 
   .rwc-items {
@@ -1751,6 +1763,9 @@ function exportWinners() {
       font-weight: 700;
       color: var(--text-primary);
       margin-bottom: 4px;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+      word-break: break-all;
     }
     .cg-items {
       display: flex;

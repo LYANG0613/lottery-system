@@ -628,9 +628,11 @@ function getItemTagStyle(level: number) {
   background: var(--level-gradient, linear-gradient(135deg, #FFD700, #FFA500));
   color: #fff;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.25;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-all;
 }
 
 // Responsive
